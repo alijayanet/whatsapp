@@ -36,6 +36,7 @@ mv env-example.txt .env
 ```
 
 Edit file `.env` dengan pengaturan yang sesuai:
+jangan lupa edit juga file settings.json untuk pengaturan lainya
 
 ```
 # Konfigurasi Server
