@@ -1,3 +1,9 @@
+============== info 081947215703 ==================
+
+Rekening Donasi Untuk Pembanguanan Masjid
+# 4206 0101 2214 534 BRI an DKM BAITUR ROHMAN
+====================================================
+
 # WhatsApp-Only
 
 Versi ringan dari Botlokal yang hanya menggunakan fitur WhatsApp tanpa web interface.
