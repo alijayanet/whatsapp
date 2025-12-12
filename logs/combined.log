@@ -1544,3 +1544,52 @@
 2025-06-03 18:51:57 info: PPPoE monitoring: 160 active connections, 160 login, 0 logout
 2025-06-03 18:52:57 info: Monitoring PPPoE connections: 160 active connections
 2025-06-03 18:53:57 info: Monitoring PPPoE connections: 160 active connections
+2025-12-12 21:20:26 info: Direktori sesi WhatsApp dibuat: ./whatsapp-session
+2025-12-12 21:20:27 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:20:27 info: Attempting to start server on configured port: 4500
+2025-12-12 21:20:27 info: Mencoba memulai server pada port 4500...
+2025-12-12 21:20:27 info: Server berhasil berjalan pada port 4500
+2025-12-12 21:20:27 info: Environment: development
+2025-12-12 21:20:27 info: WhatsApp socket set in pppoe-notifications module
+2025-12-12 21:20:27 info: WhatsApp socket set in pppoe-commands module
+2025-12-12 21:20:27 info: WhatsApp socket set in genieacs-commands module
+2025-12-12 21:20:27 info: WhatsApp connected successfully
+2025-12-12 21:20:27 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:20:27 info: PPPoE monitoring auto-started on initialization
+2025-12-12 21:20:27 info: PPPoE monitoring initialized
+2025-12-12 21:22:07 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:22:07 info: Attempting to start server on configured port: 4500
+2025-12-12 21:22:07 info: Mencoba memulai server pada port 4500...
+2025-12-12 21:22:07 info: Server berhasil berjalan pada port 4500
+2025-12-12 21:22:07 info: Environment: development
+2025-12-12 21:22:07 info: WhatsApp socket set in pppoe-notifications module
+2025-12-12 21:22:07 info: WhatsApp socket set in pppoe-commands module
+2025-12-12 21:22:07 info: WhatsApp socket set in genieacs-commands module
+2025-12-12 21:22:07 info: WhatsApp connected successfully
+2025-12-12 21:22:07 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:22:07 info: PPPoE monitoring auto-started on initialization
+2025-12-12 21:22:07 info: PPPoE monitoring initialized
+2025-12-12 21:23:14 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:23:14 info: Attempting to start server on configured port: 4500
+2025-12-12 21:23:14 info: Mencoba memulai server pada port 4500...
+2025-12-12 21:23:14 info: Server berhasil berjalan pada port 4500
+2025-12-12 21:23:14 info: Environment: development
+2025-12-12 21:23:14 info: WhatsApp socket set in pppoe-notifications module
+2025-12-12 21:23:14 info: WhatsApp socket set in pppoe-commands module
+2025-12-12 21:23:14 info: WhatsApp socket set in genieacs-commands module
+2025-12-12 21:23:14 info: WhatsApp connected successfully
+2025-12-12 21:23:14 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:23:14 info: PPPoE monitoring auto-started on initialization
+2025-12-12 21:23:14 info: PPPoE monitoring initialized
+2025-12-12 21:26:16 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:26:16 info: Attempting to start server on configured port: 4500
+2025-12-12 21:26:16 info: Mencoba memulai server pada port 4500...
+2025-12-12 21:26:16 info: Server berhasil berjalan pada port 4500
+2025-12-12 21:26:16 info: Environment: development
+2025-12-12 21:26:16 info: WhatsApp socket set in pppoe-notifications module
+2025-12-12 21:26:16 info: WhatsApp socket set in pppoe-commands module
+2025-12-12 21:26:16 info: WhatsApp socket set in genieacs-commands module
+2025-12-12 21:26:16 info: WhatsApp connected successfully
+2025-12-12 21:26:16 info: PPPoE monitoring started with interval 60000ms
+2025-12-12 21:26:16 info: PPPoE monitoring auto-started on initialization
+2025-12-12 21:26:16 info: PPPoE monitoring initialized

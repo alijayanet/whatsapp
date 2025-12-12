@@ -386,11 +386,10 @@ async function connectToWhatsApp() {
         sock = makeWASocket({
             auth: state,
             logger,
-            browser: ['ALIJAYA DIGITAL NETWORK', 'Chrome', '1.0.0'],
-            connectTimeoutMs: 60000,
-            qrTimeout: 40000,
-            defaultQueryTimeoutMs: 30000, // Timeout untuk query
-            retryRequestDelayMs: 1000
+            browser: ['Ubuntu', 'Chrome', '10.0.0'],
+            connectTimeoutMs: 20000,
+            defaultQueryTimeoutMs: 60000,
+            retryRequestDelayMs: 250
         });
         
 
@@ -2333,7 +2332,13 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
         // Validasi parameter
         if (!customerNumber || !newPassword) {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *FORMAT Salah!*\n\nFormat yang benar:\neditpassword [nomor_pelanggan] [password_baru]\n\nContoh:\neditpassword 123456 password123`
+                text: `❌ *FORMAT Salah!*
+
+Format yang benar:
+editpassword [nomor_pelanggan] [password_baru]
+
+Contoh:
+editpassword 123456 password123`
             });
             return;
         }
@@ -3265,9 +3270,17 @@ async function handleDeletePPPoESecret(remoteJid, params) {
 
         let responseMessage = '';
         if (resultBool) {
-            responseMessage = `✅ *BERHASIL MENGHAPUS SECRET PPPoE*\n\nUser berhasil dihapus dari Mikrotik.\n\n• Username: ${username}`;
+            responseMessage = `✅ *BERHASIL MENGHAPUS SECRET PPPoE*
+
+User berhasil dihapus dari Mikrotik.
+
+• Username: ${username}`;
         } else {
-            responseMessage = `❌ *GAGAL MENGHAPUS SECRET PPPoE*\n\nUser tidak ditemukan atau gagal menghapus dari Mikrotik.\n\n• Username: ${username}`;
+            responseMessage = `❌ *GAGAL MENGHAPUS SECRET PPPoE*
+
+User tidak ditemukan atau gagal menghapus dari Mikrotik.
+
+• Username: ${username}`;
         }
 
         // Kirim pesan respons dengan timeout
@@ -3600,12 +3613,21 @@ async function handleResourceInfo(remoteJid) {
             if (data.version !== 'N/A') systemInfo += `• Version: ${data.version}\n`;
             if (data.boardName !== 'N/A') systemInfo += `• Board: ${data.boardName}\n`;
 
-            const message = `📊 *INFO RESOURCE ROUTER*\n\n${cpuInfo}\n${memoryInfo}\n${diskInfo}\n${systemInfo}`;
+            const message = `📊 *INFO RESOURCE ROUTER*
+
+${cpuInfo}
+${memoryInfo}
+${diskInfo}
+${systemInfo}`;
 
             await sock.sendMessage(remoteJid, { text: message });
         } else {
             await sock.sendMessage(remoteJid, {
-                text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+${result.message}
+
+Silakan coba lagi nanti.`
             });
         }
     } catch (error) {
@@ -3614,7 +3636,11 @@ async function handleResourceInfo(remoteJid) {
         // Kirim pesan error
         try {
             await sock.sendMessage(remoteJid, {
-                text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil informasi resource: ${error.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+Terjadi kesalahan saat mengambil informasi resource: ${error.message}
+
+Silakan coba lagi nanti.`
             });
         } catch (sendError) {
             console.error('Error sending error message:', sendError);
@@ -3680,7 +3706,11 @@ async function handleActiveHotspotUsers(remoteJid) {
             await sock.sendMessage(remoteJid, { text: message });
         } else {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+${result.message}
+
+Silakan coba lagi nanti.`
             });
         }
     } catch (error) {
@@ -3689,7 +3719,11 @@ async function handleActiveHotspotUsers(remoteJid) {
         // Kirim pesan error
         try {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar user hotspot aktif: ${error.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+Terjadi kesalahan saat mengambil daftar user hotspot aktif: ${error.message}
+
+Silakan coba lagi nanti.`
             });
         } catch (sendError) {
             console.error('Error sending error message:', sendError);
@@ -3736,7 +3770,11 @@ async function handleActivePPPoE(remoteJid) {
             await sock.sendMessage(remoteJid, { text: message });
         } else {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+${result.message}
+
+Silakan coba lagi nanti.`
             });
         }
     } catch (error) {
@@ -3745,7 +3783,11 @@ async function handleActivePPPoE(remoteJid) {
         // Kirim pesan error
         try {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar koneksi PPPoE aktif: ${error.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+Terjadi kesalahan saat mengambil daftar koneksi PPPoE aktif: ${error.message}
+
+Silakan coba lagi nanti.`
             });
         } catch (sendError) {
             console.error('Error sending error message:', sendError);
@@ -3799,7 +3841,11 @@ async function handleOfflineUsers(remoteJid) {
             await sock.sendMessage(remoteJid, { text: message });
         } else {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+${result.message}
+
+Silakan coba lagi nanti.`
             });
         }
     } catch (error) {
@@ -3808,7 +3854,11 @@ async function handleOfflineUsers(remoteJid) {
         // Kirim pesan error
         try {
             await sock.sendMessage(remoteJid, { 
-                text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar user offline: ${error.message}\n\nSilakan coba lagi nanti.`
+                text: `❌ *ERROR*
+
+Terjadi kesalahan saat mengambil daftar user offline: ${error.message}
+
+Silakan coba lagi nanti.`
             });
         } catch (sendError) {
             console.error('Error sending error message:', sendError);
@@ -4007,7 +4057,12 @@ async function handleIncomingMessage(sock, message) {
     if (!global.superAdminWelcomeSent) {
         try {
             await sock.sendMessage(superAdminNumber + '@s.whatsapp.net', {
-                text: `${COMPANY_HEADER}\n👋 *Selamat datang, Super Admin!*\n\nAplikasi WhatsApp Bot berhasil dijalankan.\n\nHanya Anda yang dapat menjalankan perintah stop/start GenieACS.${FOOTER_INFO}`
+                text: `${COMPANY_HEADER}
+👋 *Selamat datang, Super Admin!*
+
+Aplikasi WhatsApp Bot berhasil dijalankan.
+
+Hanya Anda yang dapat menjalankan perintah stop/start GenieACS.${FOOTER_INFO}`
             });
             global.superAdminWelcomeSent = true;
             console.log('Pesan selamat datang terkirim ke super admin');
@@ -4370,7 +4425,13 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 return;
             } else {
                 await sock.sendMessage(remoteJid, {
-                    text: `❌ *FORMAT SALAH*\n\nFormat yang benar:\ncekstatus [nomor_pelanggan]\n\nContoh:\ncekstatus 081234567890`
+                    text: `❌ *FORMAT SALAH*
+
+Format yang benar:
+cekstatus [nomor_pelanggan]
+
+Contoh:
+cekstatus 081234567890`
                 });
                 return;
             }
@@ -5038,7 +5099,11 @@ Pesan GenieACS telah diaktifkan kembali.`);
         try {
             if (sock && message && message.key && message.key.remoteJid) {
                 await sock.sendMessage(message.key.remoteJid, { 
-                    text: `❌ *ERROR*\n\nTerjadi kesalahan saat memproses pesan: ${error.message}\n\nSilakan coba lagi nanti.`
+                    text: `❌ *ERROR*
+
+Terjadi kesalahan saat memproses pesan: ${error.message}
+
+Silakan coba lagi nanti.`
                 });
             }
         } catch (sendError) {
