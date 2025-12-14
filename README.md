@@ -1,8 +1,6 @@
 ============== info 081947215703 ==================
 
-Rekening Donasi Untuk Pembanguanan Masjid
-# 4206 0101 2214 534 BRI an DKM BAITUR ROHMAN
-====================================================
+
 
 # WhatsApp-Only
 
@@ -85,6 +83,32 @@ lalu
 pm2 start app-whatsapp-only.js
 ```
 
+### 4. Mengakses Fitur Web Data Pelanggan
+
+Aplikasi ini sekarang dilengkapi dengan antarmuka web untuk manajemen data pelanggan. Untuk mengakses fitur ini:
+
+1. Buka browser dan akses alamat: `http://localhost:3500` (atau port yang telah dikonfigurasi di file `.env`)
+2. Gunakan kredensial berikut untuk login:
+   - Username: `admin` (atau sesuai konfigurasi di `.env`)
+   - Password: `admin` (atau sesuai konfigurasi di `.env`)
+
+Fitur web ini memungkinkan Anda untuk:
+- Melihat daftar semua pelanggan
+- Menambahkan data pelanggan baru
+- Mengedit informasi pelanggan
+- Menghapus data pelanggan
+- Melihat status registrasi WhatsApp pelanggan (berdasarkan LID)
+
+Data pelanggan disimpan dalam file `data/customers.json` dan mencakup:
+- Nama pelanggan
+- Nomor WhatsApp
+- Username PPPoE
+- Status registrasi WhatsApp (LID)
+
+Fitur tambahan:
+- Pelanggan dapat melakukan registrasi mandiri melalui WhatsApp dengan perintah `REG [username_pppoe/nomor_hp]` untuk menghubungkan nomor WhatsApp mereka dengan data pelanggan yang sudah ada di sistem.
+- Setelah registrasi berhasil, pelanggan dapat menggunakan fitur bot tanpa perlu memasukkan nomor pelanggan lagi.
+
 ## Perintah WhatsApp
 menggunakan nomer yang di daftarkan sebagai admin di ENV
 
@@ -96,6 +120,7 @@ untuk mendaftarkan nomer admin silahkan kirim pesan setadmin 081321xxxxxx kirim 
 - `refresh` - Refresh data perangkat
 - `gantiwifi [nama]` - Ganti nama WiFi
 - `gantipass [password]` - Ganti password WiFi
+- `reg [username_pppoe/nomor_hp]` - Registrasi nomor WhatsApp dengan akun pelanggan (menghubungkan akun pelanggan dengan nomor WhatsApp yang digunakan)
 
 ### Perintah untuk Admin
 - Semua perintah pelanggan

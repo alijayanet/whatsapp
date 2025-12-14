@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fab fa-whatsapp"></i> Manajemen Pelanggan</h1>
+            <div>
+                <a href="/customers/add" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah</a>
+                <a href="/logout" class="btn btn-danger" style="margin-left: 10px;"><i class="fas fa-sign-out-alt"></i>
+                    Logout</a>
+            </div>
+        </div>
+
+        <% if (success) { %>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <%= success %>
+            </div>
+            <% } %>
+
+                <% if (error) { %>
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <%= error %>
+                    </div>
+                    <% } %>
+
+                        <div class="card">
+                            <% if (customers.length===0) { %>
+                                <div class="empty-state">
+                                    <i class="fas fa-users fa-3x"></i>
+                                    <p>Belum ada data pelanggan.</p>
+                                    <p>Silakan tambahkan pelanggan baru.</p>
+                                </div>
+                                <% } else { %>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th>No. WhatsApp</th>
+                                                <th>Username PPPoE</th>
+                                                <th>Status Reg (LID)</th>
+                                                <th width="150">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% customers.forEach(customer=> { %>
+                                                <tr>
+                                                    <td><strong>
+                                                            <%= customer.name %>
+                                                        </strong></td>
+                                                    <td>
+                                                        <%= customer.whatsappNumber || '-' %>
+                                                    </td>
+                                                    <td>
+                                                        <%= customer.pppoeUsername %>
+                                                    </td>
+                                                    <td>
+                                                        <% if (customer.whatsappLid) { %>
+                                                            <span class="badge badge-lid"><i class="fas fa-link"></i>
+                                                                Terhubung</span>
+                                                            <div
+                                                                style="font-size:0.8em; color:#6b7280; margin-top:2px;">
+                                                                <%= customer.whatsappLid.split('@')[0] %>
+                                                            </div>
+                                                            <% } else { %>
+                                                                <span class="badge"
+                                                                    style="background:#f3f4f6; color:#9ca3af;">Belum
+                                                                    Reg</span>
+                                                                <% } %>
+                                                    </td>
+                                                    <td>
+                                                        <a href="/customers/edit/<%= customer.id %>" class="btn btn-sm"
+                                                            style="color: #4b5563; background: #e5e7eb;"><i
+                                                                class="fas fa-edit"></i></a>
+                                                        <a href="/customers/delete/<%= customer.id %>"
+                                                            class="btn btn-sm"
+                                                            style="color: #ef4444; background: #fee2e2;"
+                                                            onclick="return confirm('Yakin ingin menghapus pelanggan ini?')"><i
+                                                                class="fas fa-trash"></i></a>
+                                                    </td>
+                                                </tr>
+                                                <% }); %>
+                                        </tbody>
+                                    </table>
+                                    <% } %>
+                        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Manajemen Pelanggan</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .login-header {
+            margin-bottom: 30px;
+        }
+
+        .login-header i {
+            font-size: 3rem;
+            color: #764ba2;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .login-header h2 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-user-circle"></i>
+            <h2>Admin Login</h2>
+        </div>
+
+        <% if (error) { %>
+            <div class="alert alert-error" style="text-align: left; font-size: 0.9em;">
+                <i class="fas fa-exclamation-circle"></i>
+                <%= error %>
+            </div>
+            <% } %>
+
+                <form action="/login" method="POST">
+                    <div class="form-group" style="text-align: left;">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required placeholder="Masukkan username">
+                    </div>
+
+                    <div class="form-group" style="text-align: left;">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Masukkan password"
+                            style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Masuk
+                    </button>
+                </form>
+    </div>
+</body>
+
+</html>

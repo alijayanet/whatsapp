@@ -6,12 +6,8 @@ const axios = require('axios');
 const fs = require('fs');
 require('dotenv').config();
 const pino = require('pino');
-// const { logger } = require('./logger');
-const logger = console;
+const { logger } = require('./logger');
 const genieacsCommands = require('./genieacs-commands');
-const helpMessages = require('./help-messages');
-const settingsManager = require('./settingsManager');
-const customerManager = require('./customerManager');
 
 const {
     addHotspotUser,
@@ -77,26 +73,15 @@ function isAdminNumber(number) {
     try {
         // Hapus semua karakter non-digit
         const cleanNumber = number.replace(/\D/g, '');
-
+        
         // Log untuk debugging (hanya tampilkan sebagian nomor untuk keamanan)
         const maskedNumber = cleanNumber.substring(0, 4) + '****' + cleanNumber.substring(cleanNumber.length - 4);
         console.log(`Checking if ${maskedNumber} is admin`);
-
+        
         // Cek apakah nomor sama dengan super admin
         if (cleanNumber === superAdminNumber) {
             return true;
         }
-
-        // Cek dari settings.json via settingsManager
-        const settings = settingsManager.getSettingsWithCache();
-        if (settings && settings.admins && Array.isArray(settings.admins)) {
-            // Normalisasi daftar admin di settings (hapus non-digit)
-            const cleanAdmins = settings.admins.map(a => a.replace(/\D/g, ''));
-            if (cleanAdmins.includes(cleanNumber)) {
-                return true;
-            }
-        }
-
         // Cek apakah nomor sama dengan ADMIN_NUMBER dari environment
         const adminNumber = process.env.ADMIN_NUMBER?.replace(/\D/g, '');
         if (adminNumber && cleanNumber === adminNumber) {
@@ -110,10 +95,10 @@ function isAdminNumber(number) {
         return false;
     } catch (error) {
         console.error('Error in isAdminNumber:', error);
-        if (mainAdminNumber && (number.includes(mainAdminNumber) || mainAdminNumber.includes(number))) {
-            console.log('Fallback: encrypted admin number match');
-            return true;
-        }
+            if (mainAdminNumber && (number.includes(mainAdminNumber) || mainAdminNumber.includes(number))) {
+                console.log('Fallback: encrypted admin number match');
+                return true;
+            }
         return false;
     }
 }
@@ -145,10 +130,10 @@ async function sendFormattedMessage(remoteJid, message, options = {}) {
     try {
         // Tambahkan header dan footer ke pesan
         const formattedMessage = formatWithHeaderFooter(message);
-
+        
         // Buat objek pesan
         const messageObj = { ...options, text: formattedMessage };
-
+        
         // Kirim pesan
         await sock.sendMessage(remoteJid, messageObj);
         return true;
@@ -171,37 +156,37 @@ function updateConfig(newConfig) {
             COMPANY_HEADER = newConfig.companyHeader + "\n\n";
             console.log('WhatsApp company header updated:', COMPANY_HEADER);
         }
-
+        
         // Update footer info jika ada
         if (newConfig.footerInfo !== undefined) {
             FOOTER_INFO = FOOTER_SEPARATOR + newConfig.footerInfo;
             console.log('WhatsApp footer info updated:', newConfig.footerInfo);
         }
-
+        
         // Update admin number jika ada
         if (newConfig.adminNumber !== undefined) {
             process.env.ADMIN_NUMBER = newConfig.adminNumber;
             console.log('WhatsApp admin number updated:', newConfig.adminNumber);
         }
-
+        
         // Update technician numbers jika ada
         if (newConfig.technicianNumbers !== undefined) {
             process.env.TECHNICIAN_NUMBERS = newConfig.technicianNumbers;
             console.log('WhatsApp technician numbers updated:', newConfig.technicianNumbers);
         }
-
+        
         // Update keep alive jika ada
         if (newConfig.keepAlive !== undefined) {
             process.env.WHATSAPP_KEEP_ALIVE = newConfig.keepAlive ? 'true' : 'false';
             console.log('WhatsApp keep alive updated:', newConfig.keepAlive);
         }
-
+        
         // Update restart on error jika ada
         if (newConfig.restartOnError !== undefined) {
             process.env.WHATSAPP_RESTART_ON_ERROR = newConfig.restartOnError ? 'true' : 'false';
             console.log('WhatsApp restart on error updated:', newConfig.restartOnError);
         }
-
+        
         // Kirim notifikasi ke admin jika ada perubahan penting
         if (sock && process.env.ADMIN_NUMBER) {
             const notifMsg = formatWithHeaderFooter('Settings changes applied successfully');
@@ -285,28 +270,28 @@ function getDeviceStatus(lastInform) {
 // Fungsi untuk format uptime
 function formatUptime(uptime) {
     if (!uptime) return 'N/A';
-
+    
     const seconds = parseInt(uptime);
     const days = Math.floor(seconds / (3600 * 24));
     const hours = Math.floor((seconds % (3600 * 24)) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-
+    
     let result = '';
     if (days > 0) result += `${days} hari `;
     if (hours > 0) result += `${hours} jam `;
     if (minutes > 0) result += `${minutes} menit`;
-
+    
     return result.trim() || '< 1 menit';
 }
 
 // Update fungsi untuk mendapatkan nilai parameter
 function getParameterWithPaths(device, paths) {
     if (!device || !Array.isArray(paths)) return 'N/A';
-
+    
     for (const path of paths) {
         const pathParts = path.split('.');
         let value = device;
-
+        
         for (const part of pathParts) {
             if (!value || !value[part]) {
                 value = null;
@@ -314,7 +299,7 @@ function getParameterWithPaths(device, paths) {
             }
             value = value[part];
         }
-
+        
         if (value !== null && value !== undefined && value !== '') {
             // Handle jika value adalah object
             if (typeof value === 'object') {
@@ -328,7 +313,7 @@ function getParameterWithPaths(device, paths) {
             return value;
         }
     }
-
+    
     return 'N/A';
 }
 
@@ -336,17 +321,17 @@ function getParameterWithPaths(device, paths) {
 function formatPhoneNumber(number) {
     // Hapus semua karakter non-digit
     let cleaned = number.replace(/\D/g, '');
-
+    
     // Jika dimulai dengan 0, ganti dengan 62
     if (cleaned.startsWith('0')) {
         cleaned = '62' + cleaned.slice(1);
     }
-
+    
     // Jika belum ada 62 di depan, tambahkan
     if (!cleaned.startsWith('62')) {
         cleaned = '62' + cleaned;
     }
-
+    
     return cleaned;
 }
 
@@ -370,7 +355,7 @@ function addWatermarkToMessage(message) {
 async function connectToWhatsApp() {
     try {
         console.log('Memulai koneksi WhatsApp...');
-
+        
         // Pastikan direktori sesi ada
         const sessionDir = process.env.WHATSAPP_SESSION_PATH || './whatsapp-session';
         if (!fs.existsSync(sessionDir)) {
@@ -382,11 +367,11 @@ async function connectToWhatsApp() {
                 throw new Error(`Gagal membuat direktori sesi WhatsApp: ${dirError.message}`);
             }
         }
-
+        
         // Gunakan logger dengan level yang dapat dikonfigurasi
         const logLevel = process.env.WHATSAPP_LOG_LEVEL || 'silent';
         const logger = pino({ level: logLevel });
-
+        
         // Buat socket dengan konfigurasi yang lebih baik dan penanganan error
         let authState;
         try {
@@ -395,9 +380,9 @@ async function connectToWhatsApp() {
             console.error(`Error loading WhatsApp auth state: ${authError.message}`);
             throw new Error(`Gagal memuat state autentikasi WhatsApp: ${authError.message}`);
         }
-
+        
         const { state, saveCreds } = authState;
-
+        
         sock = makeWASocket({
             auth: state,
             logger,
@@ -407,16 +392,16 @@ async function connectToWhatsApp() {
             defaultQueryTimeoutMs: 30000, // Timeout untuk query
             retryRequestDelayMs: 1000
         });
-
+        
 
 
         // Tangani update koneksi
         sock.ev.on('connection.update', (update) => {
             const { connection, lastDisconnect, qr } = update;
-
+            
             // Log update koneksi
             console.log('Connection update:', update);
-
+            
             // Tangani QR code
             if (qr) {
                 // Simpan QR code dalam format yang bersih
@@ -427,17 +412,17 @@ async function connectToWhatsApp() {
                     connectedSince: null,
                     status: 'qr_code'
                 };
-
+                
                 // Tampilkan QR code di terminal
                 console.log('QR Code tersedia, siap untuk dipindai');
                 qrcode.generate(qr, { small: true });
             }
-
+            
             // Tangani koneksi
             if (connection === 'open') {
                 console.log('WhatsApp terhubung!');
                 const connectedSince = new Date();
-
+                
                 // Update status global
                 global.whatsappStatus = {
                     connected: true,
@@ -446,10 +431,10 @@ async function connectToWhatsApp() {
                     connectedSince: connectedSince,
                     status: 'connected'
                 };
-
+                
                 // Set sock instance untuk modul lain
                 setSock(sock);
-
+                
                 // Set sock instance untuk modul sendMessage
                 try {
                     const sendMessageModule = require('./sendMessage');
@@ -457,7 +442,7 @@ async function connectToWhatsApp() {
                 } catch (error) {
                     console.error('Error setting sock for sendMessage:', error);
                 }
-
+                
                 // Set sock instance untuk modul mikrotik-commands
                 try {
                     const mikrotikCommands = require('./mikrotik-commands');
@@ -465,22 +450,22 @@ async function connectToWhatsApp() {
                 } catch (error) {
                     console.error('Error setting sock for mikrotik-commands:', error);
                 }
-
+                
                 // Kirim pesan ke admin bahwa bot telah terhubung
                 try {
                     // Pesan notifikasi
                     const notificationMessage = `📱 *BOT WHATSAPP ALIJAYA NETWORK*\n\n` +
-                        `✅ *Status:* Bot telah berhasil terhubung\n` +
-                        `📅 *Waktu:* ${connectedSince.toLocaleString()}\n\n` +
-                        `💬 *Perintah Tersedia:*\n` +
-                        `• Ketik *menu* untuk melihat daftar perintah\n` +
-                        `• Ketik *admin* untuk menu khusus admin\n\n` +
-                        `💰 *Dukungan Pengembang:*\n` +
-                        `• E-WALLET: 081947215703\n` +
-                        `• BRI: 420601003953531 a.n WARJAYA\n\n` +
-                        `👏 Terima kasih telah menggunakan Aplikasi kami.\n` +
-                        `🏢 *ALIJAYA DIGITAL NETWORK*`;
-
+                    `✅ *Status:* Bot telah berhasil terhubung\n` +
+                    `📅 *Waktu:* ${connectedSince.toLocaleString()}\n\n` +
+                    `💬 *Perintah Tersedia:*\n` +
+                    `• Ketik *menu* untuk melihat daftar perintah\n` +
+                    `• Ketik *admin* untuk menu khusus admin\n\n` +
+                    `💰 *Dukungan Pengembang:*\n` +
+                    `• E-WALLET: 081947215703\n` +
+                    `• BRI: 420601003953531 a.n WARJAYA\n\n` +
+                    `👏 Terima kasih telah menggunakan Aplikasi kami.\n` +
+                    `🏢 *ALIJAYA DIGITAL NETWORK*`;
+                    
                     // Kirim ke admin dari environment variable
                     const adminNumber = process.env.ADMIN_NUMBER;
                     if (adminNumber) {
@@ -495,7 +480,7 @@ async function connectToWhatsApp() {
                             }
                         }, 5000);
                     }
-
+                    
                     // Kirim ke admin utama (dari .env)
                     if (adminNumber) {
                         setTimeout(async () => {
@@ -531,9 +516,9 @@ async function connectToWhatsApp() {
             } else if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
+                
                 console.log(`Koneksi WhatsApp terputus. Mencoba koneksi ulang: ${shouldReconnect}`);
-
+                
                 // Update status global
                 global.whatsappStatus = {
                     connected: false,
@@ -542,7 +527,7 @@ async function connectToWhatsApp() {
                     connectedSince: null,
                     status: 'disconnected'
                 };
-
+                
                 // Reconnect jika bukan karena logout
                 if (shouldReconnect) {
                     setTimeout(() => {
@@ -551,10 +536,10 @@ async function connectToWhatsApp() {
                 }
             }
         });
-
+        
         // Tangani credentials update
         sock.ev.on('creds.update', saveCreds);
-
+        
         // PERBAIKAN: Tangani pesan masuk dengan benar
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type === 'notify') {
@@ -563,8 +548,7 @@ async function connectToWhatsApp() {
                         try {
                             // Log pesan masuk untuk debugging
                             console.log('Pesan masuk:', JSON.stringify(message, null, 2));
-
-                            // Placeholder to avoid error while I find the function definition.
+                            
                             // Panggil fungsi handleIncomingMessage
                             await handleIncomingMessage(sock, message);
                         } catch (error) {
@@ -574,16 +558,16 @@ async function connectToWhatsApp() {
                 }
             }
         });
-
+        
         return sock;
     } catch (error) {
         console.error('Error connecting to WhatsApp:', error);
-
+        
         // Coba koneksi ulang setelah interval
         setTimeout(() => {
             connectToWhatsApp();
         }, parseInt(process.env.RECONNECT_INTERVAL) || 5000);
-
+        
         return null;
     }
 }
@@ -592,52 +576,52 @@ async function connectToWhatsApp() {
 async function handleStatusCommand(senderNumber, remoteJid) {
     try {
         console.log(`Menjalankan perintah status untuk ${senderNumber}`);
-
+        
         // Cari perangkat berdasarkan nomor pengirim
         const device = await getDeviceByNumber(senderNumber);
-
+        
         if (!device) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *Perangkat Tidak Ditemukan*\n\nMaaf, perangkat Anda tidak ditemukan dalam sistem kami. Silakan hubungi admin untuk bantuan.`
             });
             return;
         }
-
+        
         // Ambil informasi perangkat
         const deviceId = device._id;
         const lastInform = new Date(device._lastInform);
         const now = new Date();
         const diffMinutes = Math.floor((now - lastInform) / (1000 * 60));
         const isOnline = diffMinutes < 15;
-
+        
         // Gunakan parameterPaths yang sudah ada untuk mendapatkan nilai
         // Ambil informasi SSID
         let ssid = 'N/A';
         let ssid5G = 'N/A';
-
+        
         // Coba ambil SSID langsung
         if (device.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['1']?.SSID?._value) {
             ssid = device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration['1'].SSID._value;
         }
-
+        
         // Coba ambil SSID 5G langsung
         if (device.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['5']?.SSID?._value) {
             ssid5G = device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration['5'].SSID._value;
         } else if (device.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['2']?.SSID?._value) {
             ssid5G = device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration['2'].SSID._value;
         }
-
+        
         // Gunakan getParameterWithPaths untuk mendapatkan nilai dari parameter paths yang sudah ada
         const rxPower = getParameterWithPaths(device, parameterPaths.rxPower);
         const formattedRxPower = rxPower !== 'N/A' ? `${rxPower} dBm` : 'N/A';
-
+        
         const pppUsername = getParameterWithPaths(device, parameterPaths.pppUsername);
         const ipAddress = getParameterWithPaths(device, parameterPaths.pppoeIP);
-
+        
         // Ambil informasi pengguna terhubung
         let connectedUsers = getParameterWithPaths(device, parameterPaths.userConnected) || '0';
         let connectedUsers5G = getParameterWithPaths(device, parameterPaths.userConnected5G) || '0';
-
+        
         // Jika kedua nilai tersedia, gabungkan
         let totalConnectedUsers = connectedUsers;
         if (connectedUsers !== 'N/A' && connectedUsers5G !== 'N/A' && connectedUsers5G !== '0') {
@@ -688,13 +672,13 @@ async function handleStatusCommand(senderNumber, remoteJid) {
         } catch (e) {
             console.error('Error parsing associated devices SSID 1:', e);
         }
-
+        
         // Ambil informasi uptime
         let uptime = getParameterWithPaths(device, parameterPaths.uptime);
         if (uptime !== 'N/A') {
             uptime = formatUptime(uptime);
         }
-
+        
         // Buat pesan status
         let statusMessage = `📊 *STATUS PERANGKAT*\n\n`;
         statusMessage += `🔹 *Status:* ${isOnline ? '🟢 Online' : '🔴 Offline'}\n`;
@@ -711,7 +695,7 @@ async function handleStatusCommand(senderNumber, remoteJid) {
         } else {
             statusMessage += `└─ Tidak ada user WiFi yang terhubung di SSID 1 (2.4GHz)\n`;
         }
-
+        
         // Tambahkan RX Power dengan indikator kualitas
         if (rxPower !== 'N/A') {
             const rxValue = parseFloat(rxPower);
@@ -723,76 +707,52 @@ async function handleStatusCommand(senderNumber, remoteJid) {
         } else {
             statusMessage += `🔹 *RX Power:* ${formattedRxPower}\n`;
         }
-
+        
         statusMessage += `🔹 *PPPoE Username:* ${pppUsername}\n`;
         statusMessage += `🔹 *IP Address:* ${ipAddress}\n`;
-
+        
         // Tambahkan uptime jika tersedia
         if (uptime !== 'N/A') {
             statusMessage += `🔹 *Uptime:* ${uptime}\n`;
         }
         statusMessage += `\n`;
-
+        
         // Tambahkan informasi tambahan
         statusMessage += `ℹ️ Untuk mengubah nama WiFi, ketik:\n`;
         statusMessage += `*gantiwifi [nama]*\n\n`;
         statusMessage += `ℹ️ Untuk mengubah password WiFi, ketik:\n`;
         statusMessage += `*gantipass [password]*\n\n`;
-
+        
         // Kirim pesan status dengan header dan footer
         await sendFormattedMessage(remoteJid, statusMessage);
         console.log(`Pesan status terkirim ke ${remoteJid}`);
-
+        
         return true;
     } catch (error) {
         console.error('Error sending status message:', error);
-
+        
         // Kirim pesan error dengan header dan footer
         await sendFormattedMessage(remoteJid, `❌ *Error*\n\nTerjadi kesalahan saat mengambil status perangkat. Silakan coba lagi nanti.`);
-
+        
         return false;
     }
 }
 
 // Fungsi untuk mengecek apakah nomor adalah admin atau super admin
-// Fungsi untuk mengecek apakah nomor adalah admin atau super admin
 function isAdminNumber(number) {
     try {
-        // 1. Cek Super Admin (Hardcoded/File)
-        const cleanNumber = number.replace(/\D/g, ''); // Phone format
+        const cleanNumber = number.replace(/\D/g, '');
         if (cleanNumber === superAdminNumber) {
             return true;
         }
-
-        // 2. Cek Admin dari settings.json (Support LID & Phone)
-        const settings = settingsManager.getSettingsWithCache();
-        const admins = settings.admins || [];
-
-        // Cek jika number adalah LID (mengandung @ atau full string match di array)
-        if (admins.includes(number)) {
+        const adminNumber = process.env.ADMIN_NUMBER?.replace(/\D/g, '');
+        if (adminNumber && cleanNumber === adminNumber) {
             return true;
         }
-
-        // Cek jika number adalah phone (scan array untuk clean number match)
-        // Ini untuk backward compatibility dengan format lama di settings.json
-        const adminCleanNumbers = admins.map(a => a.replace(/\D/g, ''));
-        if (adminCleanNumbers.includes(cleanNumber)) {
+        const technicianNumbers = process.env.TECHNICIAN_NUMBERS?.split(',').map(n => n.trim().replace(/\D/g, '')) || [];
+        if (technicianNumbers.includes(cleanNumber)) {
             return true;
         }
-
-        // 3. Cek Technician (Optional, biasanya teknisi juga punya akses terbatas/admin)
-        const technicians = settings.technician_numbers || [];
-        const techCleanNumbers = technicians.map(t => String(t).replace(/\D/g, ''));
-        if (techCleanNumbers.includes(cleanNumber)) {
-            return true;
-        }
-
-        // 4. Fallback ke ENV (Legacy)
-        const envAdmin = process.env.ADMIN_NUMBER?.replace(/\D/g, '');
-        if (envAdmin && cleanNumber === envAdmin) {
-            return true;
-        }
-
         return false;
     } catch (error) {
         console.error('Error in isAdminNumber:', error);
@@ -1038,73 +998,26 @@ async function sendAdminMenuList(remoteJid) {
 async function getDeviceByNumber(number) {
     try {
         console.log(`Mencari perangkat untuk nomor ${number}`);
-
-        // 1. Coba cari pelanggan di database lokal (PROSES BARU)
-        // Kita cek apakah nomor ini terdaftar sebagai LID atau nomor HP di data pelanggan
-        try {
-            const customer = customerManager.findCustomer({
-                lid: number,
-                phoneNumber: number
-            });
-
-            if (customer && customer.pppoeUsername) {
-                console.log(`Pelanggan ditemukan di database: ${customer.name} (${customer.pppoeUsername})`);
-
-                // Cari device berdasarkan PPPoE username
-                try {
-                    const response = await axios.get(`${process.env.GENIEACS_URL}/devices`, {
-                        params: {
-                            'query': JSON.stringify({
-                                'VirtualParameters.pppoeUsername': customer.pppoeUsername
-                            })
-                        },
-                        auth: {
-                            username: process.env.GENIEACS_USERNAME,
-                            password: process.env.GENIEACS_PASSWORD
-                        }
-                    });
-
-                    if (response.data && response.data.length > 0) {
-                        console.log(`Perangkat ditemukan berdasarkan PPPoE username: ${customer.pppoeUsername}`);
-                        return response.data[0];
-                    } else {
-                        // Fallback logic: check typical other paths primarily for clarity
-                        const paths = [
-                            `InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username`,
-                            `Device.IP.Interface.1.IPv4Address.1.IPAddress` // Just as example, but we stick to username
-                        ];
-                        // Query again with standard path if valid param
-                        // Actually, let's just stick to fallback to tag if PPPoE lookup fails
-                        console.log(`Tidak ada perangkat dengan PPPoE username ${customer.pppoeUsername} di GenieACS`);
-                    }
-                } catch (err) {
-                    console.error('Error searching device by PPPoE:', err);
-                }
-            }
-        } catch (dbError) {
-            console.error('Error searching customer database:', dbError);
-        }
-
-        // 2. Fallback ke pencarian TAG (PROSES LAMA)
+        
         // Bersihkan nomor dari karakter non-digit
         let cleanNumber = number.replace(/\D/g, '');
-
+        
         // Format nomor dalam beberapa variasi yang mungkin digunakan sebagai tag
         const possibleFormats = [];
-
+        
         // Format 1: Nomor asli yang dibersihkan
         possibleFormats.push(cleanNumber);
-
+        
         // Format 2: Jika diawali 0, coba versi dengan 62 di depan (ganti 0 dengan 62)
         if (cleanNumber.startsWith('0')) {
             possibleFormats.push('62' + cleanNumber.substring(1));
         }
-
+        
         // Format 3: Jika diawali 62, coba versi dengan 0 di depan (ganti 62 dengan 0)
         if (cleanNumber.startsWith('62')) {
             possibleFormats.push('0' + cleanNumber.substring(2));
         }
-
+        
         // Format 4: Tanpa awalan, jika ada awalan
         if (cleanNumber.startsWith('0') || cleanNumber.startsWith('62')) {
             if (cleanNumber.startsWith('0')) {
@@ -1113,9 +1026,9 @@ async function getDeviceByNumber(number) {
                 possibleFormats.push(cleanNumber.substring(2));
             }
         }
-
+        
         console.log(`Mencoba format nomor berikut: ${possibleFormats.join(', ')}`);
-
+        
         // Coba cari dengan semua format yang mungkin
         for (const format of possibleFormats) {
             try {
@@ -1129,7 +1042,7 @@ async function getDeviceByNumber(number) {
                 // Lanjut ke format berikutnya
             }
         }
-
+        
         console.log(`Perangkat tidak ditemukan untuk nomor ${number} dengan semua format yang dicoba`);
         return null;
     } catch (error) {
@@ -1147,16 +1060,16 @@ async function handleRefreshCommand(senderNumber, remoteJid) {
 
     try {
         // Kirim pesan bahwa proses refresh sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES REFRESH*\n\nSedang memperbarui informasi perangkat...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES REFRESH*\n\nSedang memperbarui informasi perangkat...\nMohon tunggu sebentar.` 
         });
 
         // Cari perangkat berdasarkan nomor pengirim
         const device = await getDeviceByNumber(senderNumber);
-
+        
         if (!device) {
-            await sock.sendMessage(remoteJid, {
-                text: `❌ *PERANGKAT TIDAK DITEMUKAN*\n\nMaaf, tidak dapat menemukan perangkat yang terkait dengan nomor Anda.`
+            await sock.sendMessage(remoteJid, { 
+                text: `❌ *PERANGKAT TIDAK DITEMUKAN*\n\nMaaf, tidak dapat menemukan perangkat yang terkait dengan nomor Anda.` 
             });
             return;
         }
@@ -1169,44 +1082,44 @@ async function handleRefreshCommand(senderNumber, remoteJid) {
         if (refreshResult.success) {
             // Tunggu sebentar untuk memastikan data telah diperbarui
             await new Promise(resolve => setTimeout(resolve, 3000));
-
+            
             // Ambil data terbaru 
             try {
                 const updatedDevice = await getDeviceByNumber(senderNumber);
                 const model = updatedDevice.InternetGatewayDevice?.DeviceInfo?.ModelName?._value || 'N/A';
                 const serialNumber = updatedDevice.InternetGatewayDevice?.DeviceInfo?.SerialNumber?._value || 'N/A';
                 const lastInform = new Date(updatedDevice._lastInform).toLocaleString();
-
-                await sock.sendMessage(remoteJid, {
+                
+                await sock.sendMessage(remoteJid, { 
                     text: `✅ *REFRESH BERHASIL*\n\n` +
-                        `Perangkat berhasil diperbarui!\n\n` +
-                        `📱 *Detail Perangkat:*\n` +
-                        `• Serial Number: ${serialNumber}\n` +
-                        `• Model: ${model}\n` +
-                        `• Last Inform: ${lastInform}\n\n` +
-                        `Gunakan perintah *status* untuk melihat informasi lengkap perangkat.`
+                          `Perangkat berhasil diperbarui!\n\n` +
+                          `📱 *Detail Perangkat:*\n` +
+                          `• Serial Number: ${serialNumber}\n` +
+                          `• Model: ${model}\n` +
+                          `• Last Inform: ${lastInform}\n\n` +
+                          `Gunakan perintah *status* untuk melihat informasi lengkap perangkat.`
                 });
             } catch (updateError) {
                 console.error('Error getting updated device info:', updateError);
-
+                
                 // Tetap kirim pesan sukses meskipun gagal mendapatkan info terbaru
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `✅ *REFRESH BERHASIL*\n\n` +
-                        `Perangkat berhasil diperbarui!\n\n` +
-                        `Gunakan perintah *status* untuk melihat informasi lengkap perangkat.`
+                          `Perangkat berhasil diperbarui!\n\n` +
+                          `Gunakan perintah *status* untuk melihat informasi lengkap perangkat.`
                 });
             }
         } else {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *REFRESH GAGAL*\n\n` +
-                    `Terjadi kesalahan saat memperbarui perangkat:\n` +
-                    `${refreshResult.message || 'Kesalahan tidak diketahui'}\n\n` +
-                    `Silakan coba lagi nanti atau hubungi admin.`
+                      `Terjadi kesalahan saat memperbarui perangkat:\n` +
+                      `${refreshResult.message || 'Kesalahan tidak diketahui'}\n\n` +
+                      `Silakan coba lagi nanti atau hubungi admin.`
             });
         }
     } catch (error) {
         console.error('Error in handleRefreshCommand:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *ERROR*\n\nTerjadi kesalahan saat memproses perintah:\n${error.message}`
         });
     }
@@ -1216,15 +1129,15 @@ async function handleRefreshCommand(senderNumber, remoteJid) {
 async function refreshDevice(deviceId) {
     try {
         console.log(`Refreshing device with ID: ${deviceId}`);
-
+        
         // 1. Pastikan deviceId valid dan properly encoded
         if (!deviceId) {
             return { success: false, message: "Device ID tidak valid" };
         }
-
+        
         // 2. Coba mendapatkan device terlebih dahulu untuk memastikan ID valid
         const genieacsUrl = process.env.GENIEACS_URL || 'http://localhost:7557';
-
+        
         // Cek apakah device ada
         try {
             const checkResponse = await axios.get(`${genieacsUrl}/devices?query={"_id":"${deviceId}"}`, {
@@ -1233,22 +1146,22 @@ async function refreshDevice(deviceId) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             if (!checkResponse.data || checkResponse.data.length === 0) {
                 console.error(`Device with ID ${deviceId} not found`);
                 return { success: false, message: "Perangkat tidak ditemukan di sistem" };
             }
-
+            
             // Pastikan kita menggunakan ID yang tepat dari respons
             const exactDeviceId = checkResponse.data[0]._id;
             console.log(`Using exact device ID: ${exactDeviceId}`);
-
+            
             // Gunakan URI encoding yang benar
             const encodedDeviceId = encodeURIComponent(exactDeviceId);
-
+            
             // 3. Kirim permintaan refresh dengan object parameter kosong
             console.log(`Sending refresh task to: ${genieacsUrl}/devices/${encodedDeviceId}/tasks`);
-
+            
             const refreshResponse = await axios.post(
                 `${genieacsUrl}/devices/${encodedDeviceId}/tasks`,
                 {
@@ -1265,25 +1178,25 @@ async function refreshDevice(deviceId) {
                     }
                 }
             );
-
+            
             console.log(`Refresh response status: ${refreshResponse.status}`);
             return { success: true, message: "Perangkat berhasil diperbarui" };
-
+            
         } catch (checkError) {
             console.error(`Error checking device: ${checkError.message}`);
-
+            
             // Pendekatan alternatif: Kirim refreshObject tanpa cek terlebih dahulu
             console.log(`Trying alternative approach for device ${deviceId}`);
-
+            
             try {
                 // Coba beberapa format URI untuk deviceId
                 // 1. Coba gunakan encodeURIComponent
                 const encodedDeviceId1 = encodeURIComponent(deviceId);
                 // 2. Coba ganti karakter khusus secara manual
                 const encodedDeviceId2 = deviceId.replace(/:/g, '%3A').replace(/\//g, '%2F');
-
+                
                 const attempts = [encodedDeviceId1, encodedDeviceId2, deviceId];
-
+                
                 for (const attemptedId of attempts) {
                     try {
                         console.log(`Trying refresh with ID format: ${attemptedId}`);
@@ -1301,7 +1214,7 @@ async function refreshDevice(deviceId) {
                                 timeout: 5000
                             }
                         );
-
+                        
                         console.log(`Refresh successful with ID format: ${attemptedId}`);
                         return { success: true, message: "Perangkat berhasil diperbarui" };
                     } catch (attemptError) {
@@ -1309,20 +1222,20 @@ async function refreshDevice(deviceId) {
                         // Lanjut ke percobaan berikutnya
                     }
                 }
-
+                
                 throw new Error("Semua percobaan refresh gagal");
             } catch (altError) {
                 console.error(`All refresh attempts failed: ${altError.message}`);
                 throw altError;
             }
         }
-
+        
     } catch (error) {
         console.error('Error refreshing device:', error);
-
+        
         // Berikan respons error yang lebih spesifik
         let errorMessage = "Kesalahan tidak diketahui";
-
+        
         if (error.response) {
             errorMessage = `Error ${error.response.status}: ${error.response.data || 'No response data'}`;
         } else if (error.request) {
@@ -1330,10 +1243,10 @@ async function refreshDevice(deviceId) {
         } else {
             errorMessage = error.message;
         }
-
-        return {
-            success: false,
-            message: `Gagal memperbarui perangkat: ${errorMessage}`
+        
+        return { 
+            success: false, 
+            message: `Gagal memperbarui perangkat: ${errorMessage}` 
         };
     }
 }
@@ -1352,67 +1265,67 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
     }
 
     if (!customerNumber) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `admincheck [nomor_pelanggan]\n\n` +
-                `Contoh:\n` +
-                `admincheck 123456`
+                  `Format yang benar:\n` +
+                  `admincheck [nomor_pelanggan]\n\n` +
+                  `Contoh:\n` +
+                  `admincheck 123456`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔍 *MENCARI PERANGKAT*\n\nSedang mencari perangkat untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔍 *MENCARI PERANGKAT*\n\nSedang mencari perangkat untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.` 
         });
 
         // Cari perangkat berdasarkan nomor pelanggan
         const device = await findDeviceByTag(customerNumber);
-
+        
         if (!device) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *PERANGKAT TIDAK DITEMUKAN*\n\n` +
-                    `Tidak dapat menemukan perangkat untuk pelanggan dengan nomor ${customerNumber}.\n\n` +
-                    `Pastikan nomor pelanggan benar dan perangkat telah terdaftar dalam sistem.`
+                      `Tidak dapat menemukan perangkat untuk pelanggan dengan nomor ${customerNumber}.\n\n` +
+                      `Pastikan nomor pelanggan benar dan perangkat telah terdaftar dalam sistem.`
             });
             return;
         }
 
         // Ekstrak informasi perangkat - Gunakan pendekatan yang sama dengan dashboard web
         // Coba ambil dari berbagai kemungkinan path untuk memastikan konsistensi dengan dashboard
-        let serialNumber = device.InternetGatewayDevice?.DeviceInfo?.SerialNumber?._value ||
-            device.Device?.DeviceInfo?.SerialNumber?._value ||
-            device.DeviceID?.SerialNumber ||
-            device._id?.split('-')[2] || 'Unknown';
-
+        let serialNumber = device.InternetGatewayDevice?.DeviceInfo?.SerialNumber?._value || 
+                          device.Device?.DeviceInfo?.SerialNumber?._value || 
+                          device.DeviceID?.SerialNumber || 
+                          device._id?.split('-')[2] || 'Unknown';
+        
         // Coba ambil model dari berbagai kemungkinan path
-        let modelName = device.InternetGatewayDevice?.DeviceInfo?.ModelName?._value ||
-            device.Device?.DeviceInfo?.ModelName?._value ||
-            device.DeviceID?.ProductClass ||
-            device._id?.split('-')[1] || 'Unknown';
-
+        let modelName = device.InternetGatewayDevice?.DeviceInfo?.ModelName?._value || 
+                        device.Device?.DeviceInfo?.ModelName?._value || 
+                        device.DeviceID?.ProductClass || 
+                        device._id?.split('-')[1] || 'Unknown';
+        
         const lastInform = new Date(device._lastInform);
         const now = new Date();
         const diffMinutes = Math.floor((now - lastInform) / (1000 * 60));
         const isOnline = diffMinutes < 15;
         const statusText = isOnline ? '🟢 Online' : '🔴 Offline';
-
+        
         // Informasi WiFi
         const ssid = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[1]?.SSID?._value || 'N/A';
         const ssid5G = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[5]?.SSID?._value || 'N/A';
-
+        
         // Informasi IP
         const ipAddress = device.InternetGatewayDevice?.WANDevice?.[1]?.WANConnectionDevice?.[1]?.WANPPPConnection?.[1]?.ExternalIPAddress?._value || 'N/A';
-
+        
         // Informasi PPPoE
-        const pppoeUsername =
+        const pppoeUsername = 
             device.InternetGatewayDevice?.WANDevice?.[1]?.WANConnectionDevice?.[1]?.WANPPPConnection?.[1]?.Username?._value ||
             device.InternetGatewayDevice?.WANDevice?.[0]?.WANConnectionDevice?.[0]?.WANPPPConnection?.[0]?.Username?._value ||
             device.VirtualParameters?.pppoeUsername?._value ||
             'N/A';
-
+        
         // Ambil RX Power dari semua kemungkinan path
         const rxPower = getParameterWithPaths(device, parameterPaths.rxPower);
         let rxPowerStatus = '';
@@ -1422,7 +1335,7 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
             else if (power > -27) rxPowerStatus = '🟠 Warning';
             else rxPowerStatus = '🔴 Kritis';
         }
-
+        
         // Informasi pengguna WiFi
         const users24ghz = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[1]?.TotalAssociations?._value || 0;
         const users5ghz = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[5]?.TotalAssociations?._value || 0;
@@ -1480,7 +1393,7 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
         message += `📱 *Model:* ${modelName}\n`;
         message += `📡 *Status:* ${statusText}\n`;
         message += `⏱️ *Last Seen:* ${lastInform.toLocaleString()}\n\n`;
-
+        
         message += `🌐 *INFORMASI JARINGAN*\n`;
         message += `🔹 IP Address: ${ipAddress}\n`;
         message += `🔹 PPPoE Username: ${pppoeUsername}\n`;
@@ -1501,12 +1414,12 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
             message += `└─ Tidak ada data user WiFi (2.4GHz) tersedia\n`;
         }
         message += `\n`;
-
+        
         if (rxPower) {
             message += `📶 *KUALITAS SINYAL*\n`;
             message += `• RX Power: ${rxPower} dBm (${rxPowerStatus})\n\n`;
         }
-
+        
         message += `💡 *TINDAKAN ADMIN*\n`;
         message += `• Ganti SSID: editssid ${customerNumber} [nama_baru]\n`;
         message += `• Ganti Password: editpass ${customerNumber} [password_baru]\n`;
@@ -1515,7 +1428,7 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
         await sock.sendMessage(remoteJid, { text: message });
     } catch (error) {
         console.error('Error in handleAdminCheckONU:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *ERROR*\n\nTerjadi kesalahan saat memeriksa perangkat:\n${error.message}`
         });
     }
@@ -1525,7 +1438,7 @@ async function handleAdminCheckONU(remoteJid, customerNumber) {
 async function findDeviceByTag(tag) {
     try {
         console.log(`Searching for device with tag: ${tag}`);
-
+        
         // Coba cari dengan query langsung
         try {
             // Pertama coba dengan query exact match
@@ -1535,12 +1448,12 @@ async function findDeviceByTag(tag) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             if (exactResponse.data && exactResponse.data.length > 0) {
                 console.log(`Device found with exact tag match: ${tag}`);
                 return exactResponse.data[0];
             }
-
+            
             // Jika tidak ditemukan dengan exact match, coba dengan partial match
             console.log(`No exact match found for tag ${tag}, trying partial match...`);
             const partialResponse = await axios.get(`${process.env.GENIEACS_URL}/devices`, {
@@ -1549,18 +1462,18 @@ async function findDeviceByTag(tag) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             // Cari perangkat dengan tag yang cocok sebagian
             if (partialResponse.data && partialResponse.data.length > 0) {
                 for (const device of partialResponse.data) {
                     if (device._tags && Array.isArray(device._tags)) {
                         // Cek apakah ada tag yang berisi nomor yang dicari
-                        const matchingTag = device._tags.find(t =>
+                        const matchingTag = device._tags.find(t => 
                             t === tag || // Exact match
                             t.includes(tag) || // Tag berisi nomor
                             tag.includes(t) // Nomor berisi tag (jika tag adalah nomor parsial)
                         );
-
+                        
                         if (matchingTag) {
                             console.log(`Device found with partial tag match: ${matchingTag}`);
                             return device;
@@ -1568,13 +1481,13 @@ async function findDeviceByTag(tag) {
                     }
                 }
             }
-
+            
             console.log(`No device found with tag containing: ${tag}`);
             return null;
-
+            
         } catch (queryError) {
             console.error('Error with tag query:', queryError.message);
-
+            
             // Jika gagal, coba cara alternatif dengan mengambil semua perangkat
             console.log('Trying alternative method: fetching all devices');
             const allDevicesResponse = await axios.get(`${process.env.GENIEACS_URL}/devices`, {
@@ -1583,19 +1496,19 @@ async function findDeviceByTag(tag) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             // Cari perangkat dengan tag yang sesuai
             const device = allDevicesResponse.data.find(d => {
                 if (!d._tags) return false;
-
+                
                 // Cek apakah ada tag yang cocok
-                return d._tags.some(t =>
+                return d._tags.some(t => 
                     t === tag || // Exact match
                     t.includes(tag) || // Tag berisi nomor
                     tag.includes(t) // Nomor berisi tag
                 );
             });
-
+            
             return device || null;
         }
     } catch (error) {
@@ -1608,22 +1521,22 @@ async function findDeviceByTag(tag) {
 async function handleChangeSSID(senderNumber, remoteJid, params) {
     try {
         console.log(`Handling change SSID request from ${senderNumber} with params:`, params);
-
+        
         const device = await getDeviceByNumber(senderNumber);
         if (!device) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *NOMOR TIDAK TERDAFTAR*
 
 Waduh, nomor kamu belum terdaftar nih.
-Hubungi admin dulu yuk untuk daftar!${FOOTER_INFO}`
+Hubungi admin dulu yuk untuk daftar!${FOOTER_INFO}` 
             });
             return;
         }
 
         if (params.length < 1) {
             // Kirim template untuk input nama WiFi
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 📝 *CARA GANTI NAMA WIFI*
 
@@ -1642,9 +1555,9 @@ Hubungi admin dulu yuk untuk daftar!${FOOTER_INFO}`
 
         const newSSID = params.join(' ');
         const newSSID5G = `${newSSID}-5G`;
-
+        
         // Kirim pesan bahwa permintaan sedang diproses
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `${COMPANY_HEADER}
 ⏳ *PERMINTAAN DIPROSES*
 
@@ -1654,10 +1567,10 @@ Sedang mengubah nama WiFi Anda...
 
 Mohon tunggu sebentar.${FOOTER_INFO}`
         });
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(device._id);
-
+        
         // Update SSID 2.4GHz hanya di index 1
         await axios.post(
             `${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`,
@@ -1674,7 +1587,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
                 }
             }
         );
-
+        
         // Update SSID 5GHz hanya di index 5, 6, 7, 8
         let wifi5GFound = false;
         const ssid5gIndexes = [5, 6, 7, 8];
@@ -1706,7 +1619,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         if (!wifi5GFound) {
             console.warn('Tidak ada konfigurasi SSID 5GHz yang valid ditemukan. SSID 5GHz tidak diubah.');
         }
-
+        
         // Tambahkan task refresh
         try {
             await axios.post(
@@ -1726,7 +1639,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         } catch (refreshError) {
             console.error('Error sending refresh task:', refreshError.message);
         }
-
+        
         // Reboot perangkat untuk menerapkan perubahan
         try {
             await axios.post(
@@ -1768,7 +1681,7 @@ _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`;
 
     } catch (error) {
         console.error('Error handling change SSID:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `${COMPANY_HEADER}
 ❌ *GAGAL MENGUBAH NAMA WIFI*
 
@@ -1780,7 +1693,7 @@ Beberapa kemungkinan penyebabnya:
 
 Pesan error: ${error.message}
 
-Coba lagi nanti ya!${FOOTER_INFO}`
+Coba lagi nanti ya!${FOOTER_INFO}` 
         });
     }
 }
@@ -1789,10 +1702,10 @@ Coba lagi nanti ya!${FOOTER_INFO}`
 async function handleAdminEditPassword(adminJid, customerNumber, newPassword) {
     try {
         console.log(`Admin mengubah password WiFi untuk pelanggan ${customerNumber}`);
-
+        
         // Validasi panjang password
         if (newPassword.length < 8) {
-            await sock.sendMessage(adminJid, {
+            await sock.sendMessage(adminJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *PASSWORD TERLALU PENDEK*
 
@@ -1801,26 +1714,26 @@ Silakan coba lagi dengan password yang lebih panjang.${FOOTER_INFO}`
             });
             return;
         }
-
+        
         // Format nomor pelanggan untuk mencari di GenieACS
         const formattedNumber = formatPhoneNumber(customerNumber);
         console.log(`Mencari perangkat untuk nomor: ${formattedNumber}`);
-
+        
         // Cari perangkat pelanggan
         const device = await getDeviceByNumber(formattedNumber);
         if (!device) {
-            await sock.sendMessage(adminJid, {
+            await sock.sendMessage(adminJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *NOMOR PELANGGAN TIDAK DITEMUKAN*
 
 Nomor ${customerNumber} tidak terdaftar di sistem.
-Periksa kembali nomor pelanggan.${FOOTER_INFO}`
+Periksa kembali nomor pelanggan.${FOOTER_INFO}` 
             });
             return;
         }
-
+        
         // Kirim pesan ke admin bahwa permintaan sedang diproses
-        await sock.sendMessage(adminJid, {
+        await sock.sendMessage(adminJid, { 
             text: `${COMPANY_HEADER}
 ⏳ *PERMINTAAN DIPROSES*
 
@@ -1829,10 +1742,10 @@ Password baru: ${newPassword}
 
 Mohon tunggu sebentar.${FOOTER_INFO}`
         });
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(device._id);
-
+        
         // Update password WiFi 2.4GHz di index 1
         await axios.post(
             `${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`,
@@ -1849,7 +1762,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
                 }
             }
         );
-
+        
         // Update password WiFi 5GHz di index 5, 6, 7, 8
         let wifi5GFound = false;
         const wifi5gIndexes = [5, 6, 7, 8];
@@ -1878,7 +1791,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
                 console.error(`Error updating 5GHz password with index ${idx}:`, error.message);
             }
         }
-
+        
         // Tambahkan task refresh
         try {
             await axios.post(
@@ -1898,7 +1811,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         } catch (refreshError) {
             console.error('Error sending refresh task:', refreshError.message);
         }
-
+        
         // Reboot perangkat untuk menerapkan perubahan
         try {
             await axios.post(
@@ -1917,7 +1830,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         } catch (rebootError) {
             console.error('Error sending reboot task:', rebootError.message);
         }
-
+        
         // Pesan sukses untuk admin
         const adminResponseMessage = `${COMPANY_HEADER}
 ✅ *PASSWORD WIFI PELANGGAN BERHASIL DIUBAH!*
@@ -1931,7 +1844,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
 _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`;
 
         await sock.sendMessage(adminJid, { text: adminResponseMessage });
-
+        
         // Kirim notifikasi ke pelanggan tentang perubahan password WiFi
         try {
             // Format nomor pelanggan untuk WhatsApp
@@ -1943,7 +1856,7 @@ _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`;
                 const cleanNumber = customerNumber.replace(/\D/g, '');
                 customerJid = `${cleanNumber}@s.whatsapp.net`;
             }
-
+            
             // Pesan notifikasi untuk pelanggan
             const customerNotificationMessage = `${COMPANY_HEADER}
 📢 *PEMBERITAHUAN PERUBAHAN PASSWORD WIFI*
@@ -1958,24 +1871,24 @@ Kami informasikan bahwa password WiFi Anda telah diubah oleh admin:
 📱 Perangkat yang terhubung akan terputus dan perlu menghubungkan ulang dengan password baru.
 
 _Catatan: Simpan informasi ini sebagai dokumentasi jika Anda lupa password WiFi di kemudian hari._${FOOTER_INFO}`;
-
+            
             await sock.sendMessage(customerJid, { text: customerNotificationMessage });
             console.log(`Notification sent to customer ${customerNumber} about WiFi password change`);
         } catch (notificationError) {
             console.error(`Failed to send notification to customer ${customerNumber}:`, notificationError.message);
             // Kirim pesan ke admin bahwa notifikasi ke pelanggan gagal
-            await sock.sendMessage(adminJid, {
+            await sock.sendMessage(adminJid, { 
                 text: `${COMPANY_HEADER}
 ⚠️ *INFO*
 
 Password WiFi pelanggan berhasil diubah, tetapi gagal mengirim notifikasi ke pelanggan.
-Error: ${notificationError.message}${FOOTER_INFO}`
+Error: ${notificationError.message}${FOOTER_INFO}` 
             });
         }
-
+        
     } catch (error) {
         console.error('Error handling admin edit password:', error);
-        await sock.sendMessage(adminJid, {
+        await sock.sendMessage(adminJid, { 
             text: `${COMPANY_HEADER}
 ❌ *GAGAL MENGUBAH PASSWORD WIFI PELANGGAN*
 
@@ -1987,7 +1900,7 @@ Beberapa kemungkinan penyebabnya:
 
 Pesan error: ${error.message}
 
-Coba lagi nanti ya!${FOOTER_INFO}`
+Coba lagi nanti ya!${FOOTER_INFO}` 
         });
     }
 }
@@ -1996,29 +1909,29 @@ Coba lagi nanti ya!${FOOTER_INFO}`
 async function handleAdminEditSSID(adminJid, customerNumber, newSSID) {
     try {
         console.log(`Admin mengubah SSID untuk pelanggan ${customerNumber} menjadi ${newSSID}`);
-
+        
         // Format nomor pelanggan untuk mencari di GenieACS
         const formattedNumber = formatPhoneNumber(customerNumber);
         console.log(`Mencari perangkat untuk nomor: ${formattedNumber}`);
-
+        
         // Cari perangkat pelanggan
         const device = await getDeviceByNumber(formattedNumber);
         if (!device) {
-            await sock.sendMessage(adminJid, {
+            await sock.sendMessage(adminJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *NOMOR PELANGGAN TIDAK DITEMUKAN*
 
 Nomor ${customerNumber} tidak terdaftar di sistem.
-Periksa kembali nomor pelanggan.${FOOTER_INFO}`
+Periksa kembali nomor pelanggan.${FOOTER_INFO}` 
             });
             return;
         }
-
+        
         // Buat nama SSID 5G berdasarkan SSID 2.4G
         const newSSID5G = `${newSSID}-5G`;
-
+        
         // Kirim pesan ke admin bahwa permintaan sedang diproses
-        await sock.sendMessage(adminJid, {
+        await sock.sendMessage(adminJid, { 
             text: `${COMPANY_HEADER}
 ⏳ *PERMINTAAN DIPROSES*
 
@@ -2028,10 +1941,10 @@ Sedang mengubah nama WiFi pelanggan ${customerNumber}...
 
 Mohon tunggu sebentar.${FOOTER_INFO}`
         });
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(device._id);
-
+        
         // Update SSID 2.4GHz di index 1
         await axios.post(
             `${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`,
@@ -2048,7 +1961,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
                 }
             }
         );
-
+        
         // Update SSID 5GHz di index 5, 6, 7, 8
         let wifi5GFound = false;
         const ssid5gIndexes = [5, 6, 7, 8];
@@ -2077,7 +1990,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
                 console.error(`Error updating 5GHz SSID with index ${idx}:`, error.message);
             }
         }
-
+        
         // Tambahkan task refresh
         try {
             await axios.post(
@@ -2097,7 +2010,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         } catch (refreshError) {
             console.error('Error sending refresh task:', refreshError.message);
         }
-
+        
         // Reboot perangkat untuk menerapkan perubahan
         try {
             await axios.post(
@@ -2116,7 +2029,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
         } catch (rebootError) {
             console.error('Error sending reboot task:', rebootError.message);
         }
-
+        
         // Pesan sukses untuk admin
         let adminResponseMessage = `${COMPANY_HEADER}
 ✅ *NAMA WIFI PELANGGAN BERHASIL DIUBAH!*
@@ -2138,7 +2051,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
 _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`;
 
         await sock.sendMessage(adminJid, { text: adminResponseMessage });
-
+        
         // Kirim notifikasi ke pelanggan tentang perubahan SSID
         try {
             // Format nomor pelanggan untuk WhatsApp
@@ -2150,7 +2063,7 @@ _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`;
                 const cleanNumber = customerNumber.replace(/\D/g, '');
                 customerJid = `${cleanNumber}@s.whatsapp.net`;
             }
-
+            
             // Pesan notifikasi untuk pelanggan
             const customerNotificationMessage = `${COMPANY_HEADER}
 📢 *PEMBERITAHUAN PERUBAHAN WIFI*
@@ -2161,35 +2074,35 @@ Kami informasikan bahwa nama WiFi Anda telah diubah oleh admin:
 
 📡 *Nama WiFi Baru:*
 • WiFi 2.4GHz: ${newSSID}`;
-
+            
             let fullCustomerMessage = customerNotificationMessage;
             if (wifi5GFound) {
                 fullCustomerMessage += `\n• WiFi 5GHz: ${newSSID5G}`;
             }
-
+            
             fullCustomerMessage += `\n
 ⏳ Perangkat Anda akan melakukan restart untuk menerapkan perubahan.
 📱 Perangkat yang terhubung akan terputus dan perlu menghubungkan ulang ke nama WiFi baru.
 
 _Catatan: Simpan informasi ini sebagai dokumentasi jika Anda lupa nama WiFi di kemudian hari._${FOOTER_INFO}`;
-
+            
             await sock.sendMessage(customerJid, { text: fullCustomerMessage });
             console.log(`Notification sent to customer ${customerNumber} about SSID change`);
         } catch (notificationError) {
             console.error(`Failed to send notification to customer ${customerNumber}:`, notificationError.message);
             // Kirim pesan ke admin bahwa notifikasi ke pelanggan gagal
-            await sock.sendMessage(adminJid, {
+            await sock.sendMessage(adminJid, { 
                 text: `${COMPANY_HEADER}
 ⚠️ *INFO*
 
 Nama WiFi pelanggan berhasil diubah, tetapi gagal mengirim notifikasi ke pelanggan.
-Error: ${notificationError.message}${FOOTER_INFO}`
+Error: ${notificationError.message}${FOOTER_INFO}` 
             });
         }
-
+        
     } catch (error) {
         console.error('Error handling admin edit SSID:', error);
-        await sock.sendMessage(adminJid, {
+        await sock.sendMessage(adminJid, { 
             text: `${COMPANY_HEADER}
 ❌ *GAGAL MENGUBAH NAMA WIFI PELANGGAN*
 
@@ -2201,7 +2114,7 @@ Beberapa kemungkinan penyebabnya:
 
 Pesan error: ${error.message}
 
-Coba lagi nanti ya!${FOOTER_INFO}`
+Coba lagi nanti ya!${FOOTER_INFO}` 
         });
     }
 }
@@ -2210,10 +2123,10 @@ Coba lagi nanti ya!${FOOTER_INFO}`
 async function handleChangePassword(senderNumber, remoteJid, params) {
     try {
         console.log(`Handling change password request from ${senderNumber} with params:`, params);
-
+        
         // Validasi parameter
         if (params.length < 1) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *FORMAT SALAH*
 
@@ -2228,12 +2141,12 @@ async function handleChangePassword(senderNumber, remoteJid, params) {
             });
             return;
         }
-
+        
         const newPassword = params[0];
-
+        
         // Validasi panjang password
         if (newPassword.length < 8) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *PASSWORD TERLALU PENDEK*
 
@@ -2242,13 +2155,13 @@ Silakan coba lagi dengan password yang lebih panjang.${FOOTER_INFO}`
             });
             return;
         }
-
+        
         // Cari perangkat berdasarkan nomor pengirim
         console.log(`Finding device for number: ${senderNumber}`);
-
+        
         const device = await getDeviceByNumber(senderNumber);
         if (!device) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *NOMOR TIDAK TERDAFTAR*
 
@@ -2257,25 +2170,25 @@ Hubungi admin dulu yuk untuk daftar!${FOOTER_INFO}`
             });
             return;
         }
-
+        
         // Dapatkan ID perangkat
         const deviceId = device._id;
         console.log(`Found device ID: ${deviceId}`);
-
+        
         // Kirim pesan bahwa permintaan sedang diproses
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `${COMPANY_HEADER}
 ⏳ *PERMINTAAN DIPROSES*
 
 Sedang mengubah password WiFi Anda...
 Mohon tunggu sebentar.${FOOTER_INFO}`
         });
-
+        
         // Perbarui password WiFi
         const result = await changePassword(deviceId, newPassword);
-
+        
         if (result.success) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ✅ *PASSWORD WIFI BERHASIL DIUBAH!*
 
@@ -2287,7 +2200,7 @@ Mohon tunggu sebentar.${FOOTER_INFO}`
 _Perubahan selesai pada: ${new Date().toLocaleString()}_${FOOTER_INFO}`
             });
         } else {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `${COMPANY_HEADER}
 ❌ *GAGAL MENGUBAH PASSWORD*
 
@@ -2304,7 +2217,7 @@ Coba lagi nanti ya!${FOOTER_INFO}`
         }
     } catch (error) {
         console.error('Error handling password change:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `${COMPANY_HEADER}
 ❌ *TERJADI KESALAHAN*
 
@@ -2319,17 +2232,17 @@ Silakan coba lagi nanti atau hubungi admin.${FOOTER_INFO}`
 async function changePassword(deviceId, newPassword) {
     try {
         console.log(`Changing password for device: ${deviceId}`);
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeDeviceId(deviceId);
-
+        
         // Ambil informasi perangkat terlebih dahulu
         // PERBAIKAN: Cek apakah perangkat ada dengan cara lebih sederhana
         // tanpa menggunakan genieacsApi.getDeviceInfo
-
+        
         // URL untuk tasks GenieACS
         const tasksUrl = `${global.appSettings.genieacsUrl}/devices/${encodedDeviceId}/tasks?timeout=3000`;
-
+        
         // Buat task untuk mengubah password
         // Perbarui parameter untuk 2.4GHz WiFi
         const updatePass24Task = {
@@ -2339,7 +2252,7 @@ async function changePassword(deviceId, newPassword) {
                 ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase", newPassword, "xsd:string"]
             ]
         };
-
+        
         console.log('Sending task to update password 2.4GHz');
         const response24 = await axios.post(
             tasksUrl,
@@ -2355,7 +2268,7 @@ async function changePassword(deviceId, newPassword) {
             }
         );
         console.log(`2.4GHz password update response:`, response24.status);
-
+        
         // Perbarui parameter untuk 5GHz WiFi
         const updatePass5Task = {
             name: "setParameterValues",
@@ -2364,7 +2277,7 @@ async function changePassword(deviceId, newPassword) {
                 ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.PreSharedKey.1.KeyPassphrase", newPassword, "xsd:string"]
             ]
         };
-
+        
         console.log('Sending task to update password 5GHz');
         const response5 = await axios.post(
             tasksUrl,
@@ -2380,13 +2293,13 @@ async function changePassword(deviceId, newPassword) {
             }
         );
         console.log(`5GHz password update response:`, response5.status);
-
+        
         // Kirim refresh task untuk memastikan perubahan diterapkan
         const refreshTask = {
             name: "refreshObject",
             objectName: "InternetGatewayDevice.LANDevice.1.WLANConfiguration"
         };
-
+        
         console.log('Sending refresh task');
         await axios.post(
             tasksUrl,
@@ -2401,13 +2314,13 @@ async function changePassword(deviceId, newPassword) {
                 }
             }
         );
-
+        
         return { success: true, message: 'Password berhasil diubah' };
     } catch (error) {
         console.error('Error changing password:', error);
-        return {
-            success: false,
-            message: error.response?.data?.message || error.message
+        return { 
+            success: false, 
+            message: error.response?.data?.message || error.message 
         };
     }
 }
@@ -2416,49 +2329,49 @@ async function changePassword(deviceId, newPassword) {
 async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
     try {
         console.log(`Handling admin edit password request`);
-
+        
         // Validasi parameter
         if (!customerNumber || !newPassword) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *FORMAT Salah!*\n\nFormat yang benar:\neditpassword [nomor_pelanggan] [password_baru]\n\nContoh:\neditpassword 123456 password123`
             });
             return;
         }
         // Validasi panjang password
         if (newPassword.length < 8) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *Password terlalu pendek!*\n\nPassword harus minimal 8 karakter.`
             });
             return;
         }
-
+        
         // Cari perangkat berdasarkan tag nomor pelanggan
         console.log(`Finding device for customer: ${customerNumber}`);
-
+        
         const device = await findDeviceByTag(customerNumber);
         if (!device) {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *Perangkat tidak ditemukan!*\n\n` +
-                    `Nomor pelanggan "${customerNumber}" tidak terdaftar di sistem.`
+                      `Nomor pelanggan "${customerNumber}" tidak terdaftar di sistem.`
             });
             return;
         }
-
+        
         // Dapatkan ID perangkat
         const deviceId = device._id;
         console.log(`Found device ID: ${deviceId}`);
-
+        
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PERUBAHAN PASSWORD*\n\nSedang mengubah password WiFi untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PERUBAHAN PASSWORD*\n\nSedang mengubah password WiFi untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.` 
         });
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(deviceId);
-
+        
         // URL untuk tasks GenieACS
         const tasksUrl = `${global.appSettings.genieacsUrl}/devices/${encodedDeviceId}/tasks?timeout=3000`;
-
+        
         // Buat task untuk mengubah password 2.4GHz
         const updatePass24Task = {
             name: "setParameterValues",
@@ -2467,7 +2380,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                 ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase", newPassword, "xsd:string"]
             ]
         };
-
+        
         console.log('Sending task to update password 2.4GHz');
         const response24 = await axios.post(
             tasksUrl,
@@ -2483,10 +2396,10 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
             }
         );
         console.log(`2.4GHz password update response:`, response24.status);
-
+        
         // Coba perbarui password untuk 5GHz pada index 5 terlebih dahulu
         let wifi5GFound = false;
-
+        
         try {
             console.log('Trying to update 5GHz password using config index 5');
             const updatePass5Task = {
@@ -2496,7 +2409,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                     ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.PreSharedKey.1.KeyPassphrase", newPassword, "xsd:string"]
                 ]
             };
-
+            
             await axios.post(
                 tasksUrl,
                 updatePass5Task,
@@ -2514,13 +2427,13 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
             wifi5GFound = true;
         } catch (error5) {
             console.error('Error updating 5GHz password with index 5:', error5.message);
-
+            
             // Mencoba dengan index lain selain 2 (3, 4, 6)
             const alternativeIndexes = [3, 4, 6];
-
+            
             for (const idx of alternativeIndexes) {
                 if (wifi5GFound) break;
-
+                
                 try {
                     console.log(`Trying to update 5GHz password using config index ${idx}`);
                     const updatePassAltTask = {
@@ -2530,7 +2443,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                             [`InternetGatewayDevice.LANDevice.1.WLANConfiguration.${idx}.PreSharedKey.1.KeyPassphrase`, newPassword, "xsd:string"]
                         ]
                     };
-
+                    
                     await axios.post(
                         tasksUrl,
                         updatePassAltTask,
@@ -2551,7 +2464,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                     console.error(`Error updating 5GHz password with index ${idx}:`, error.message);
                 }
             }
-
+            
             // Jika index 5 dan alternatif (3, 4, 6) gagal, biarkan SSID 5GHz tidak berubah
             if (!wifi5GFound) {
                 try {
@@ -2563,7 +2476,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                             ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.PreSharedKey.1.KeyPassphrase", newPassword, "xsd:string"]
                         ]
                     };
-
+                    
                     await axios.post(
                         tasksUrl,
                         updatePass2Task,
@@ -2584,7 +2497,7 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
                 }
             }
         }
-
+        
         // Kirim refresh task untuk memastikan perubahan diterapkan
         try {
             await axios.post(
@@ -2607,33 +2520,33 @@ async function handleAdminEditPassword(remoteJid, customerNumber, newPassword) {
         } catch (refreshError) {
             console.error('Error sending refresh task:', refreshError.message);
         }
-
+        
         // Dapatkan informasi SSID dari perangkat untuk notifikasi
         const ssid24G = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[1]?.SSID?._value || 'WiFi 2.4GHz';
-
+        
         // Respons ke admin
         let responseMessage = `✅ *PASSWORD WIFI BERHASIL DIUBAH!*\n\n` +
-            `Pelanggan: ${customerNumber}\n` +
-            `Password baru: ${newPassword}\n\n`;
-
+              `Pelanggan: ${customerNumber}\n` +
+              `Password baru: ${newPassword}\n\n`;
+              
         if (wifi5GFound) {
             responseMessage += `Password berhasil diubah untuk WiFi 2.4GHz dan 5GHz.\n\n`;
         } else {
             responseMessage += `Password berhasil diubah untuk WiFi 2.4GHz.\n` +
-                `WiFi 5GHz: Pengaturan tidak ditemukan atau gagal diubah.\n\n`;
+                              `WiFi 5GHz: Pengaturan tidak ditemukan atau gagal diubah.\n\n`;
         }
-
+        
         responseMessage += `Perubahan akan diterapkan dalam beberapa menit.`;
-
+        
         // Coba kirim notifikasi ke pelanggan
         let notificationSent = false;
         if (customerNumber.match(/^\d+$/) && customerNumber.length >= 10) {
             try {
                 console.log(`Sending password change notification to customer: ${customerNumber}`);
-
+                
                 // Format nomor telepon
                 const formattedNumber = formatPhoneNumber(customerNumber);
-
+                
                 // Buat pesan notifikasi untuk pelanggan
                 const notificationMessage = `🏢 *${COMPANY_HEADER || ''}*
                 
@@ -2650,30 +2563,30 @@ Silakan gunakan password baru ini untuk terhubung ke jaringan WiFi Anda.
 Perubahan akan diterapkan dalam beberapa menit.${FOOTER_INFO || ''}`;
 
                 // Kirim pesan menggunakan sock
-                await sock.sendMessage(`${formattedNumber}@s.whatsapp.net`, {
-                    text: notificationMessage
+                await sock.sendMessage(`${formattedNumber}@s.whatsapp.net`, { 
+                    text: notificationMessage 
                 });
-
+                
                 console.log(`Password change notification sent to customer: ${customerNumber}`);
                 notificationSent = true;
-
+                
                 responseMessage += `\nNotifikasi sudah dikirim ke pelanggan.`;
             } catch (notificationError) {
                 console.error(`Failed to send notification to customer: ${customerNumber}`, notificationError);
                 responseMessage += `\n\n⚠️ *Peringatan:* Gagal mengirim notifikasi ke pelanggan.\n` +
-                    `Error: ${notificationError.message}`;
+                                  `Error: ${notificationError.message}`;
             }
         }
 
         // Kirim respons ke admin
         await sock.sendMessage(remoteJid, { text: responseMessage });
-
+        
     } catch (error) {
         console.error('Error handling admin password change:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *Terjadi kesalahan!*\n\n` +
-                `Error: ${error.message}\n\n` +
-                `Silakan coba lagi nanti.`
+                  `Error: ${error.message}\n\n` +
+                  `Silakan coba lagi nanti.`
         });
     }
 }
@@ -2688,19 +2601,19 @@ async function handleAdminEditSSID(remoteJid, params) {
     console.log(`Processing adminssid command with params:`, params);
 
     if (params.length < 2) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `editssid [nomor_pelanggan] [nama_wifi_baru]\n\n` +
-                `Contoh:\n` +
-                `editssid 123456 RumahBaru`
+                  `Format yang benar:\n` +
+                  `editssid [nomor_pelanggan] [nama_wifi_baru]\n\n` +
+                  `Contoh:\n` +
+                  `editssid 123456 RumahBaru`
         });
         return;
     }
 
     // Ambil nomor pelanggan dari parameter pertama
     const customerNumber = params[0];
-
+    
     // Gabungkan semua parameter setelah nomor pelanggan sebagai SSID baru
     // Ini menangani kasus di mana SSID terdiri dari beberapa kata
     const newSSID = params.slice(1).join(' ');
@@ -2710,19 +2623,19 @@ async function handleAdminEditSSID(remoteJid, params) {
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PERUBAHAN SSID*\n\nSedang mengubah nama WiFi untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PERUBAHAN SSID*\n\nSedang mengubah nama WiFi untuk pelanggan ${customerNumber}...\nMohon tunggu sebentar.` 
         });
 
         // Cari perangkat berdasarkan nomor pelanggan
         const device = await findDeviceByTag(customerNumber);
-
+        
         if (!device) {
             console.log(`Device not found for customer number: ${customerNumber}`);
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *PERANGKAT TIDAK DITEMUKAN*\n\n` +
-                    `Tidak dapat menemukan perangkat untuk pelanggan dengan nomor ${customerNumber}.\n\n` +
-                    `Pastikan nomor pelanggan benar dan perangkat telah terdaftar dalam sistem.`
+                      `Tidak dapat menemukan perangkat untuk pelanggan dengan nomor ${customerNumber}.\n\n` +
+                      `Pastikan nomor pelanggan benar dan perangkat telah terdaftar dalam sistem.`
             });
             return;
         }
@@ -2732,10 +2645,10 @@ async function handleAdminEditSSID(remoteJid, params) {
         // Dapatkan SSID saat ini untuk referensi
         const currentSSID = device.InternetGatewayDevice?.LANDevice?.[1]?.WLANConfiguration?.[1]?.SSID?._value || 'N/A';
         console.log(`Current SSID: ${currentSSID}`);
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(device._id);
-
+        
         // Update SSID 2.4GHz hanya di index 1
         await axios.post(
             `${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`,
@@ -2752,7 +2665,7 @@ async function handleAdminEditSSID(remoteJid, params) {
                 }
             }
         );
-
+        
         // Update SSID 5GHz hanya di index 5, 6, 7, 8
         let wifi5GFound = false;
         const ssid5gIndexes = [5, 6, 7, 8];
@@ -2784,7 +2697,7 @@ async function handleAdminEditSSID(remoteJid, params) {
         if (!wifi5GFound) {
             console.warn('Tidak ada konfigurasi SSID 5GHz yang valid ditemukan. SSID 5GHz tidak diubah.');
         }
-
+        
         // Tambahkan task refresh
         try {
             await axios.post(
@@ -2804,7 +2717,7 @@ async function handleAdminEditSSID(remoteJid, params) {
         } catch (refreshError) {
             console.error('Error sending refresh task:', refreshError.message);
         }
-
+        
         // Reboot perangkat untuk menerapkan perubahan
         try {
             await axios.post(
@@ -2825,38 +2738,38 @@ async function handleAdminEditSSID(remoteJid, params) {
         }
 
         let responseMessage = `✅ *PERUBAHAN SSID BERHASIL*\n\n` +
-            `Nama WiFi untuk pelanggan ${customerNumber} berhasil diubah!\n\n` +
-            `• SSID Lama: ${currentSSID}\n` +
-            `• SSID Baru: ${newSSID}\n`;
-
+                      `Nama WiFi untuk pelanggan ${customerNumber} berhasil diubah!\n\n` +
+                      `• SSID Lama: ${currentSSID}\n` +
+                      `• SSID Baru: ${newSSID}\n`;
+                      
         if (wifi5GFound) {
             responseMessage += `• SSID 5GHz: ${newSSID5G}\n\n`;
         } else {
             responseMessage += `• SSID 5GHz: Pengaturan tidak ditemukan atau gagal diubah\n\n`;
         }
-
+        
         responseMessage += `Perangkat WiFi akan restart dalam beberapa saat. Pelanggan perlu menghubungkan kembali perangkat mereka ke jaringan WiFi baru.`;
 
         await sock.sendMessage(remoteJid, { text: responseMessage });
-
+        
         // Kirim notifikasi ke pelanggan jika nomor pelanggan adalah nomor telepon
         if (customerNumber.match(/^\d+$/) && customerNumber.length >= 10) {
             try {
                 const formattedNumber = formatPhoneNumber(customerNumber);
-
+                
                 let notificationMessage = `✅ *PERUBAHAN NAMA WIFI*\n\n` +
-                    `Halo Pelanggan yang terhormat,\n\n` +
-                    `Kami informasikan bahwa nama WiFi Anda telah diubah:\n\n` +
-                    `• Nama WiFi Baru: ${newSSID}\n`;
-
+                                          `Halo Pelanggan yang terhormat,\n\n` +
+                                          `Kami informasikan bahwa nama WiFi Anda telah diubah:\n\n` +
+                                          `• Nama WiFi Baru: ${newSSID}\n`;
+                                          
                 if (wifi5GFound) {
                     notificationMessage += `• Nama WiFi 5GHz: ${newSSID5G}\n\n`;
                 }
-
+                
                 notificationMessage += `Perangkat WiFi akan restart dalam beberapa saat. Silakan hubungkan kembali perangkat Anda ke jaringan WiFi baru.\n\n` +
-                    `Jika Anda memiliki pertanyaan, silakan balas pesan ini.`;
-
-                await sock.sendMessage(`${formattedNumber}@s.whatsapp.net`, {
+                                      `Jika Anda memiliki pertanyaan, silakan balas pesan ini.`;
+                
+                await sock.sendMessage(`${formattedNumber}@s.whatsapp.net`, { 
                     text: notificationMessage
                 });
                 console.log(`Notification sent to customer: ${customerNumber}`);
@@ -2866,7 +2779,7 @@ async function handleAdminEditSSID(remoteJid, params) {
         }
     } catch (error) {
         console.error('Error in handleAdminEditSSID:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengubah nama WiFi:\n${error.message}`
         });
     }
@@ -2876,10 +2789,10 @@ async function handleAdminEditSSID(remoteJid, params) {
 async function changeSSID(deviceId, newSSID) {
     try {
         console.log(`Changing SSID for device ${deviceId} to "${newSSID}"`);
-
+        
         // Encode deviceId untuk URL
         const encodedDeviceId = encodeURIComponent(deviceId);
-
+        
         // Implementasi untuk mengubah SSID melalui GenieACS
         // Ubah SSID 2.4GHz
         try {
@@ -2895,7 +2808,7 @@ async function changeSSID(deviceId, newSSID) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             // Ubah SSID 5GHz dengan menambahkan suffix -5G
             console.log(`Setting 5GHz SSID to "${newSSID}-5G"`);
             await axios.post(`${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`, {
@@ -2909,7 +2822,7 @@ async function changeSSID(deviceId, newSSID) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             // Commit perubahan
             console.log(`Rebooting device to apply changes`);
             await axios.post(`${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`, {
@@ -2920,16 +2833,16 @@ async function changeSSID(deviceId, newSSID) {
                     password: process.env.GENIEACS_PASSWORD
                 }
             });
-
+            
             console.log(`SSID change successful`);
             return { success: true, message: "SSID berhasil diubah" };
         } catch (apiError) {
             console.error(`API Error: ${apiError.message}`);
-
+            
             // Coba cara alternatif jika cara pertama gagal
             if (apiError.response && apiError.response.status === 404) {
                 console.log(`Trying alternative path for device ${deviceId}`);
-
+                
                 try {
                     // Coba dengan path alternatif untuk 2.4GHz
                     await axios.post(`${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`, {
@@ -2943,7 +2856,7 @@ async function changeSSID(deviceId, newSSID) {
                             password: process.env.GENIEACS_PASSWORD
                         }
                     });
-
+                    
                     // Coba dengan path alternatif untuk 5GHz
                     await axios.post(`${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`, {
                         name: "setParameterValues",
@@ -2956,7 +2869,7 @@ async function changeSSID(deviceId, newSSID) {
                             password: process.env.GENIEACS_PASSWORD
                         }
                     });
-
+                    
                     // Commit perubahan
                     await axios.post(`${process.env.GENIEACS_URL}/devices/${encodedDeviceId}/tasks`, {
                         name: "reboot"
@@ -2966,7 +2879,7 @@ async function changeSSID(deviceId, newSSID) {
                             password: process.env.GENIEACS_PASSWORD
                         }
                     });
-
+                    
                     console.log(`SSID change successful using alternative path`);
                     return { success: true, message: "SSID berhasil diubah (menggunakan path alternatif)" };
                 } catch (altError) {
@@ -2979,11 +2892,11 @@ async function changeSSID(deviceId, newSSID) {
         }
     } catch (error) {
         console.error('Error changing SSID:', error);
-        return {
-            success: false,
-            message: error.response ?
-                `${error.message} (Status: ${error.response.status})` :
-                error.message
+        return { 
+            success: false, 
+            message: error.response ? 
+                `${error.message} (Status: ${error.response.status})` : 
+                error.message 
         };
     }
 }
@@ -2997,16 +2910,16 @@ async function handleListONU(remoteJid) {
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔍 *MENCARI PERANGKAT*\n\nSedang mengambil daftar perangkat ONT...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔍 *MENCARI PERANGKAT*\n\nSedang mengambil daftar perangkat ONT...\nMohon tunggu sebentar.` 
         });
 
         // Ambil daftar perangkat dari GenieACS
         const devices = await getAllDevices();
-
+        
         if (!devices || devices.length === 0) {
-            await sock.sendMessage(remoteJid, {
-                text: `ℹ️ *TIDAK ADA PERANGKAT*\n\nTidak ada perangkat ONT yang terdaftar dalam sistem.`
+            await sock.sendMessage(remoteJid, { 
+                text: `ℹ️ *TIDAK ADA PERANGKAT*\n\nTidak ada perangkat ONT yang terdaftar dalam sistem.` 
             });
             return;
         }
@@ -3098,7 +3011,7 @@ async function handleListONU(remoteJid) {
         await sock.sendMessage(remoteJid, { text: message });
     } catch (error) {
         console.error('Error in handleListONU:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar perangkat:\n${error.message}`
         });
     }
@@ -3130,16 +3043,16 @@ async function handleCheckAllONU(remoteJid) {
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔍 *MEMERIKSA SEMUA PERANGKAT*\n\nSedang memeriksa status semua perangkat ONT...\nProses ini mungkin memakan waktu beberapa saat.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔍 *MEMERIKSA SEMUA PERANGKAT*\n\nSedang memeriksa status semua perangkat ONT...\nProses ini mungkin memakan waktu beberapa saat.` 
         });
 
         // Ambil daftar perangkat dari GenieACS
         const devices = await getAllDevices();
-
+        
         if (!devices || devices.length === 0) {
-            await sock.sendMessage(remoteJid, {
-                text: `ℹ️ *TIDAK ADA PERANGKAT*\n\nTidak ada perangkat ONT yang terdaftar dalam sistem.`
+            await sock.sendMessage(remoteJid, { 
+                text: `ℹ️ *TIDAK ADA PERANGKAT*\n\nTidak ada perangkat ONT yang terdaftar dalam sistem.` 
             });
             return;
         }
@@ -3156,7 +3069,7 @@ async function handleCheckAllONU(remoteJid) {
             const now = new Date();
             const diffMinutes = Math.floor((now - lastInform) / (1000 * 60));
             const isOnline = diffMinutes < 15;
-
+            
             if (isOnline) {
                 onlineCount++;
             } else {
@@ -3178,26 +3091,26 @@ async function handleCheckAllONU(remoteJid) {
         // Buat pesan dengan statistik
         let message = `📊 *LAPORAN STATUS PERANGKAT*\n\n`;
         message += `📱 *Total Perangkat:* ${devices.length}\n\n`;
-        message += `🟢 *Online:* ${onlineCount} (${Math.round(onlineCount / devices.length * 100)}%)\n`;
-        message += `🔴 *Offline:* ${offlineCount} (${Math.round(offlineCount / devices.length * 100)}%)\n\n`;
+        message += `🟢 *Online:* ${onlineCount} (${Math.round(onlineCount/devices.length*100)}%)\n`;
+        message += `🔴 *Offline:* ${offlineCount} (${Math.round(offlineCount/devices.length*100)}%)\n\n`;
         message += `📶 *Status Sinyal:*\n`;
         message += `🟠 *Warning:* ${warningRxPowerCount} perangkat\n`;
         message += `🔴 *Critical:* ${criticalRxPowerCount} perangkat\n\n`;
-
+        
         // Tambahkan daftar perangkat dengan masalah
         if (criticalRxPowerCount > 0) {
             message += `*PERANGKAT DENGAN SINYAL KRITIS:*\n`;
             let count = 0;
-
+            
             for (const device of devices) {
                 const rxPower = device.InternetGatewayDevice?.X_GponLinkInfo?.RxPower?._value;
                 if (rxPower && parseFloat(rxPower) <= parseFloat(process.env.RX_POWER_CRITICAL || -27)) {
                     const tags = device._tags || [];
                     const customerInfo = tags.length > 0 ? tags[0] : 'No Tag';
                     const serialNumber = device.InternetGatewayDevice?.DeviceInfo?.SerialNumber?._value || 'Unknown';
-
+                    
                     message += `${++count}. *${customerInfo}* (${serialNumber}): ${rxPower} dBm\n`;
-
+                    
                     // Batasi jumlah perangkat yang ditampilkan
                     if (count >= 5) {
                         message += `...dan ${criticalRxPowerCount - 5} perangkat lainnya.\n`;
@@ -3211,7 +3124,7 @@ async function handleCheckAllONU(remoteJid) {
         // Tambahkan daftar perangkat offline terbaru
         if (offlineCount > 0) {
             message += `*PERANGKAT OFFLINE TERBARU:*\n`;
-
+            
             // Urutkan perangkat berdasarkan waktu terakhir online
             const offlineDevices = devices
                 .filter(device => {
@@ -3221,7 +3134,7 @@ async function handleCheckAllONU(remoteJid) {
                     return diffMinutes >= 15;
                 })
                 .sort((a, b) => new Date(b._lastInform) - new Date(a._lastInform));
-
+            
             // Tampilkan 5 perangkat offline terbaru
             const recentOfflineDevices = offlineDevices.slice(0, 5);
             recentOfflineDevices.forEach((device, index) => {
@@ -3229,11 +3142,11 @@ async function handleCheckAllONU(remoteJid) {
                 const customerInfo = tags.length > 0 ? tags[0] : 'No Tag';
                 const serialNumber = device.InternetGatewayDevice?.DeviceInfo?.SerialNumber?._value || 'Unknown';
                 const lastInform = new Date(device._lastInform);
-
+                
                 message += `${index + 1}. *${customerInfo}* (${serialNumber})\n`;
                 message += `   Last Seen: ${lastInform.toLocaleString()}\n`;
             });
-
+            
             if (offlineCount > 5) {
                 message += `...dan ${offlineCount - 5} perangkat offline lainnya.\n`;
             }
@@ -3242,7 +3155,7 @@ async function handleCheckAllONU(remoteJid) {
         await sock.sendMessage(remoteJid, { text: message });
     } catch (error) {
         console.error('Error in handleCheckAllONU:', error);
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *ERROR*\n\nTerjadi kesalahan saat memeriksa perangkat:\n${error.message}`
         });
     }
@@ -3256,33 +3169,33 @@ async function handleDeleteHotspotUser(remoteJid, params) {
     }
 
     if (params.length < 1) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `delhotspot [username]\n\n` +
-                `Contoh:\n` +
-                `• delhotspot user123`
+                  `Format yang benar:\n` +
+                  `delhotspot [username]\n\n` +
+                  `Contoh:\n` +
+                  `• delhotspot user123`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PENGHAPUSAN USER HOTSPOT*\n\nSedang menghapus user hotspot...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PENGHAPUSAN USER HOTSPOT*\n\nSedang menghapus user hotspot...\nMohon tunggu sebentar.` 
         });
 
         const [username] = params;
         console.log(`Deleting hotspot user: ${username}`);
-
+        
         // Panggil fungsi untuk menghapus user hotspot
         const result = await deleteHotspotUser(username);
         console.log(`Hotspot user delete result:`, result);
 
         // Buat pesan respons
         const responseMessage = `${result.success ? '✅' : '❌'} *${result.success ? 'BERHASIL' : 'GAGAL'} MENGHAPUS USER HOTSPOT*\n\n` +
-            `${result.message}\n\n` +
-            `• Username: ${username}`;
+                               `${result.message}\n\n` +
+                               `• Username: ${username}`;
 
         // Kirim pesan respons dengan timeout
         setTimeout(async () => {
@@ -3304,14 +3217,14 @@ async function handleDeleteHotspotUser(remoteJid, params) {
         }, 1500);
     } catch (error) {
         console.error('Error in handleDeleteHotspotUser:', error);
-
+        
         // Kirim pesan error
         setTimeout(async () => {
             try {
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `❌ *ERROR MENGHAPUS USER HOTSPOT*\n\n` +
-                        `Terjadi kesalahan saat menghapus user hotspot:\n` +
-                        `${error.message || 'Kesalahan tidak diketahui'}`
+                          `Terjadi kesalahan saat menghapus user hotspot:\n` +
+                          `${error.message || 'Kesalahan tidak diketahui'}`
                 });
             } catch (sendError) {
                 console.error('Error sending error message:', sendError);
@@ -3328,25 +3241,25 @@ async function handleDeletePPPoESecret(remoteJid, params) {
     }
 
     if (params.length < 1) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `delpppoe [username]\n\n` +
-                `Contoh:\n` +
-                `• delpppoe user123`
+                  `Format yang benar:\n` +
+                  `delpppoe [username]\n\n` +
+                  `Contoh:\n` +
+                  `• delpppoe user123`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PENGHAPUSAN SECRET PPPoE*\n\nSedang menghapus secret PPPoE...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PENGHAPUSAN SECRET PPPoE*\n\nSedang menghapus secret PPPoE...\nMohon tunggu sebentar.` 
         });
 
         const [username] = params;
         console.log(`Deleting PPPoE secret: ${username}`);
-
+        
         const resultBool = await deletePPPoESecret(username);
         console.log(`PPPoE secret delete result:`, resultBool);
 
@@ -3377,14 +3290,14 @@ async function handleDeletePPPoESecret(remoteJid, params) {
         }, 1500);
     } catch (error) {
         console.error('Error in handleDeletePPPoESecret:', error);
-
+        
         // Kirim pesan error
         setTimeout(async () => {
             try {
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `❌ *ERROR MENGHAPUS SECRET PPPoE*\n\n` +
-                        `Terjadi kesalahan saat menghapus secret PPPoE:\n` +
-                        `${error.message || 'Kesalahan tidak diketahui'}`
+                          `Terjadi kesalahan saat menghapus secret PPPoE:\n` +
+                          `${error.message || 'Kesalahan tidak diketahui'}`
                 });
             } catch (sendError) {
                 console.error('Error sending error message:', sendError);
@@ -3403,26 +3316,26 @@ async function handleAddHotspotUser(remoteJid, params) {
     console.log(`Processing addhotspot command with params:`, params);
 
     if (params.length < 2) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `addhotspot [username] [password] [profile]\n\n` +
-                `Contoh:\n` +
-                `• addhotspot user123 pass123\n` +
-                `• addhotspot user123 pass123 default`
+                  `Format yang benar:\n` +
+                  `addhotspot [username] [password] [profile]\n\n` +
+                  `Contoh:\n` +
+                  `• addhotspot user123 pass123\n` +
+                  `• addhotspot user123 pass123 default`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PENAMBAHAN USER HOTSPOT*\n\nSedang menambahkan user hotspot...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PENAMBAHAN USER HOTSPOT*\n\nSedang menambahkan user hotspot...\nMohon tunggu sebentar.` 
         });
 
         const [username, password, profile = "default"] = params;
         console.log(`Adding hotspot user: ${username} with profile: ${profile}`);
-
+        
         // Panggil fungsi untuk menambah user hotspot
         const result = await addHotspotUser(username, password, profile);
         console.log(`Hotspot user add result:`, result);
@@ -3431,16 +3344,16 @@ async function handleAddHotspotUser(remoteJid, params) {
         let responseMessage = '';
         if (result.success) {
             responseMessage = `✅ *BERHASIL MENAMBAHKAN USER HOTSPOT*\n\n` +
-                `${result.message || 'User hotspot berhasil ditambahkan'}\n\n` +
-                `• Username: ${username}\n` +
-                `• Password: ${password}\n` +
-                `• Profile: ${profile}`;
+                             `${result.message || 'User hotspot berhasil ditambahkan'}\n\n` +
+                             `• Username: ${username}\n` +
+                             `• Password: ${password}\n` +
+                             `• Profile: ${profile}`;
         } else {
             responseMessage = `❌ *GAGAL MENAMBAHKAN USER HOTSPOT*\n\n` +
-                `${result.message || 'Terjadi kesalahan saat menambahkan user hotspot'}\n\n` +
-                `• Username: ${username}\n` +
-                `• Password: ${password}\n` +
-                `• Profile: ${profile}`;
+                             `${result.message || 'Terjadi kesalahan saat menambahkan user hotspot'}\n\n` +
+                             `• Username: ${username}\n` +
+                             `• Password: ${password}\n` +
+                             `• Profile: ${profile}`;
         }
 
         // Kirim pesan respons dengan timeout untuk memastikan pesan terkirim
@@ -3462,17 +3375,17 @@ async function handleAddHotspotUser(remoteJid, params) {
                 }, 2000);
             }
         }, 1500); // Tunggu 1.5 detik sebelum mengirim respons
-
+        
     } catch (error) {
         console.error('Error in handleAddHotspotUser:', error);
-
+        
         // Kirim pesan error dengan timeout
         setTimeout(async () => {
             try {
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `❌ *ERROR MENAMBAHKAN USER HOTSPOT*\n\n` +
-                        `Terjadi kesalahan saat menambahkan user hotspot:\n` +
-                        `${error.message || 'Kesalahan tidak diketahui'}`
+                          `Terjadi kesalahan saat menambahkan user hotspot:\n` +
+                          `${error.message || 'Kesalahan tidak diketahui'}`
                 });
             } catch (sendError) {
                 console.error('Error sending error message:', sendError);
@@ -3489,36 +3402,36 @@ async function handleAddPPPoESecret(remoteJid, params) {
     }
 
     if (params.length < 2) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `addpppoe [username] [password] [profile] [ip]\n\n` +
-                `Contoh:\n` +
-                `• addpppoe user123 pass123\n` +
-                `• addpppoe user123 pass123 default\n` +
-                `• addpppoe user123 pass123 default 10.0.0.1`
+                  `Format yang benar:\n` +
+                  `addpppoe [username] [password] [profile] [ip]\n\n` +
+                  `Contoh:\n` +
+                  `• addpppoe user123 pass123\n` +
+                  `• addpppoe user123 pass123 default\n` +
+                  `• addpppoe user123 pass123 default 10.0.0.1`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PENAMBAHAN SECRET PPPoE*\n\nSedang menambahkan secret PPPoE...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PENAMBAHAN SECRET PPPoE*\n\nSedang menambahkan secret PPPoE...\nMohon tunggu sebentar.` 
         });
 
         const [username, password, profile = "default", localAddress = ""] = params;
         console.log(`Adding PPPoE secret: ${username} with profile: ${profile}, IP: ${localAddress || 'from pool'}`);
-
+        
         const result = await addPPPoESecret(username, password, profile, localAddress);
         console.log(`PPPoE secret add result:`, result);
 
         // Buat pesan respons
         const responseMessage = `${result.success ? '✅' : '❌'} *${result.success ? 'BERHASIL' : 'GAGAL'} MENAMBAHKAN SECRET PPPoE*\n\n` +
-            `${result.message}\n\n` +
-            `• Username: ${username}\n` +
-            `• Profile: ${profile}\n` +
-            `• IP: ${localAddress || 'Menggunakan IP dari pool'}`;
+                               `${result.message}\n\n` +
+                               `• Username: ${username}\n` +
+                               `• Profile: ${profile}\n` +
+                               `• IP: ${localAddress || 'Menggunakan IP dari pool'}`;
 
         // Kirim pesan respons dengan timeout
         setTimeout(async () => {
@@ -3540,14 +3453,14 @@ async function handleAddPPPoESecret(remoteJid, params) {
         }, 1500);
     } catch (error) {
         console.error('Error in handleAddPPPoESecret:', error);
-
+        
         // Kirim pesan error
         setTimeout(async () => {
             try {
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `❌ *ERROR MENAMBAHKAN SECRET PPPoE*\n\n` +
-                        `Terjadi kesalahan saat menambahkan secret PPPoE:\n` +
-                        `${error.message || 'Kesalahan tidak diketahui'}`
+                          `Terjadi kesalahan saat menambahkan secret PPPoE:\n` +
+                          `${error.message || 'Kesalahan tidak diketahui'}`
                 });
             } catch (sendError) {
                 console.error('Error sending error message:', sendError);
@@ -3564,33 +3477,33 @@ async function handleChangePPPoEProfile(remoteJid, params) {
     }
 
     if (params.length < 2) {
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `❌ *FORMAT SALAH*\n\n` +
-                `Format yang benar:\n` +
-                `setprofile [username] [new-profile]\n\n` +
-                `Contoh:\n` +
-                `setprofile user123 premium`
+                  `Format yang benar:\n` +
+                  `setprofile [username] [new-profile]\n\n` +
+                  `Contoh:\n` +
+                  `setprofile user123 premium`
         });
         return;
     }
 
     try {
         // Kirim pesan bahwa proses sedang berlangsung
-        await sock.sendMessage(remoteJid, {
-            text: `🔄 *PROSES PERUBAHAN PROFILE PPPoE*\n\nSedang mengubah profile PPPoE...\nMohon tunggu sebentar.`
+        await sock.sendMessage(remoteJid, { 
+            text: `🔄 *PROSES PERUBAHAN PROFILE PPPoE*\n\nSedang mengubah profile PPPoE...\nMohon tunggu sebentar.` 
         });
 
         const [username, newProfile] = params;
         console.log(`Changing PPPoE profile for user ${username} to ${newProfile}`);
-
+        
         // Ganti ke setPPPoEProfile (fungsi yang benar dari mikrotik.js)
         const result = await setPPPoEProfile(username, newProfile);
         console.log(`PPPoE profile change result:`, result);
 
         // Buat pesan respons
         const responseMessage = `${result ? '✅ BERHASIL' : '❌ GAGAL'} MENGUBAH PROFILE PPPoE\n\n` +
-            `• Username: ${username}\n` +
-            `• Profile Baru: ${newProfile}`;
+                               `• Username: ${username}\n` +
+                               `• Profile Baru: ${newProfile}`;
 
         // Kirim pesan respons dengan timeout
         setTimeout(async () => {
@@ -3612,14 +3525,14 @@ async function handleChangePPPoEProfile(remoteJid, params) {
         }, 1500);
     } catch (error) {
         console.error('Error in handleChangePPPoEProfile:', error);
-
+        
         // Kirim pesan error
         setTimeout(async () => {
             try {
-                await sock.sendMessage(remoteJid, {
+                await sock.sendMessage(remoteJid, { 
                     text: `❌ *ERROR MENGUBAH PROFILE PPPoE*\n\n` +
-                        `Terjadi kesalahan saat mengubah profile PPPoE:\n` +
-                        `${error.message || 'Kesalahan tidak diketahui'}`
+                          `Terjadi kesalahan saat mengubah profile PPPoE:\n` +
+                          `${error.message || 'Kesalahan tidak diketahui'}`
                 });
             } catch (sendError) {
                 console.error('Error sending error message:', sendError);
@@ -3718,21 +3631,21 @@ async function handleActiveHotspotUsers(remoteJid) {
 
     try {
         // Kirim pesan sedang memproses
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `⏳ *Memproses Permintaan*\n\nSedang mengambil daftar user hotspot aktif...`
         });
-
+        
         console.log('Fetching active hotspot users');
-
+        
         // Import modul mikrotik
         const mikrotik = require('./mikrotik');
-
+        
         // Ambil daftar user hotspot aktif
         const result = await mikrotik.getActiveHotspotUsers();
 
         if (result.success) {
             let message = '👥 *DAFTAR USER HOTSPOT AKTIF*\n\n';
-
+            
             if (result.data.length === 0) {
                 message += 'Tidak ada user hotspot yang aktif';
             } else {
@@ -3757,25 +3670,25 @@ async function handleActiveHotspotUsers(remoteJid) {
                     const bytesOut = parseBytes(user['bytes-out']);
 
                     message += `${index + 1}. *User: ${user.user || 'N/A'}*\n` +
-                        `   • IP: ${user.address || 'N/A'}\n` +
-                        `   • Uptime: ${user.uptime || 'N/A'}\n` +
-                        `   • Download: ${(bytesIn / 1024 / 1024).toFixed(2)} MB\n` +
-                        `   • Upload: ${(bytesOut / 1024 / 1024).toFixed(2)} MB\n\n`;
+                              `   • IP: ${user.address || 'N/A'}\n` +
+                              `   • Uptime: ${user.uptime || 'N/A'}\n` +
+                              `   • Download: ${(bytesIn/1024/1024).toFixed(2)} MB\n` +
+                              `   • Upload: ${(bytesOut/1024/1024).toFixed(2)} MB\n\n`;
                 });
             }
-
+            
             await sock.sendMessage(remoteJid, { text: message });
         } else {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
             });
         }
     } catch (error) {
         console.error('Error handling active hotspot users command:', error);
-
+        
         // Kirim pesan error
         try {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar user hotspot aktif: ${error.message}\n\nSilakan coba lagi nanti.`
             });
         } catch (sendError) {
@@ -3793,45 +3706,45 @@ async function handleActivePPPoE(remoteJid) {
 
     try {
         // Kirim pesan sedang memproses
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `⏳ *Memproses Permintaan*\n\nSedang mengambil daftar koneksi PPPoE aktif...`
         });
-
+        
         console.log('Fetching active PPPoE connections');
-
+        
         // Import modul mikrotik
         const mikrotik = require('./mikrotik');
-
+        
         // Ambil daftar koneksi PPPoE aktif
         const result = await mikrotik.getActivePPPoEConnections();
 
         if (result.success) {
             let message = '📡 *DAFTAR KONEKSI PPPoE AKTIF*\n\n';
-
+            
             if (result.data.length === 0) {
                 message += 'Tidak ada koneksi PPPoE yang aktif';
             } else {
                 result.data.forEach((conn, index) => {
                     message += `${index + 1}. *User: ${conn.name}*\n` +
-                        `   • Service: ${conn.service}\n` +
-                        `   • IP: ${conn.address}\n` +
-                        `   • Uptime: ${conn.uptime}\n` +
-                        `   • Encoding: ${conn.encoding}\n\n`;
+                              `   • Service: ${conn.service}\n` +
+                              `   • IP: ${conn.address}\n` +
+                              `   • Uptime: ${conn.uptime}\n` +
+                              `   • Encoding: ${conn.encoding}\n\n`;
                 });
             }
-
+            
             await sock.sendMessage(remoteJid, { text: message });
         } else {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
             });
         }
     } catch (error) {
         console.error('Error handling active PPPoE connections command:', error);
-
+        
         // Kirim pesan error
         try {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar koneksi PPPoE aktif: ${error.message}\n\nSilakan coba lagi nanti.`
             });
         } catch (sendError) {
@@ -3849,52 +3762,52 @@ async function handleOfflineUsers(remoteJid) {
 
     try {
         // Kirim pesan sedang memproses
-        await sock.sendMessage(remoteJid, {
+        await sock.sendMessage(remoteJid, { 
             text: `⏳ *Memproses Permintaan*\n\nSedang mengambil daftar user PPPoE offline...`
         });
-
+        
         console.log('Fetching offline PPPoE users');
-
+        
         // Import modul mikrotik
         const mikrotik = require('./mikrotik');
-
+        
         // Ambil daftar user PPPoE offline
         const result = await mikrotik.getInactivePPPoEUsers();
 
         if (result.success) {
             let message = `📊 *DAFTAR USER PPPoE OFFLINE*\n\n`;
             message += `Total User: ${result.totalSecrets}\n`;
-            message += `User Aktif: ${result.totalActive} (${((result.totalActive / result.totalSecrets) * 100).toFixed(2)}%)\n`;
-            message += `User Offline: ${result.totalInactive} (${((result.totalInactive / result.totalSecrets) * 100).toFixed(2)}%)\n\n`;
-
+            message += `User Aktif: ${result.totalActive} (${((result.totalActive/result.totalSecrets)*100).toFixed(2)}%)\n`;
+            message += `User Offline: ${result.totalInactive} (${((result.totalInactive/result.totalSecrets)*100).toFixed(2)}%)\n\n`;
+            
             if (result.data.length === 0) {
                 message += 'Tidak ada user PPPoE yang offline';
             } else {
                 // Batasi jumlah user yang ditampilkan untuk menghindari pesan terlalu panjang
                 const maxUsers = 30;
                 const displayUsers = result.data.slice(0, maxUsers);
-
+                
                 displayUsers.forEach((user, index) => {
                     message += `${index + 1}. *${user.name}*${user.comment ? ` (${user.comment})` : ''}\n`;
                 });
-
+                
                 if (result.data.length > maxUsers) {
                     message += `\n... dan ${result.data.length - maxUsers} user lainnya`;
                 }
             }
-
+            
             await sock.sendMessage(remoteJid, { text: message });
         } else {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\n${result.message}\n\nSilakan coba lagi nanti.`
             });
         }
     } catch (error) {
         console.error('Error handling offline users command:', error);
-
+        
         // Kirim pesan error
         try {
-            await sock.sendMessage(remoteJid, {
+            await sock.sendMessage(remoteJid, { 
                 text: `❌ *ERROR*\n\nTerjadi kesalahan saat mengambil daftar user offline: ${error.message}\n\nSilakan coba lagi nanti.`
             });
         } catch (sendError) {
@@ -3929,12 +3842,12 @@ module.exports = {
 function isWifiCommand(commandStr) {
     const command = commandStr.split(' ')[0].toLowerCase();
     const wifiKeywords = [
-        'gantiwifi', 'ubahwifi', 'changewifi', 'wifi',
+        'gantiwifi', 'ubahwifi', 'changewifi', 'wifi', 
         'gantissid', 'ubahssid', 'ssid',
         'namawifi', 'updatewifi', 'wifiname', 'namessid',
         'setwifi', 'settingwifi', 'changewifiname'
     ];
-
+    
     // Hapus 'editssid' dan 'editwifi' dari daftar perintah WiFi biasa
     // karena ini adalah perintah khusus admin
     return wifiKeywords.includes(command);
@@ -3950,7 +3863,7 @@ function isPasswordCommand(commandStr) {
         'gantipassword', 'ubahpassword', 'editpassword',
         'passwordwifi', 'wifipassword', 'passw', 'passwordwifi'
     ];
-
+    
     return passwordKeywords.includes(command);
 }
 
@@ -3958,26 +3871,26 @@ function isPasswordCommand(commandStr) {
 async function sendWelcomeMessage(remoteJid, isAdmin = false) {
     try {
         console.log(`Mengirim pesan selamat datang ke ${remoteJid}, isAdmin: ${isAdmin}`);
-
+        
         // Pesan selamat datang
         let welcomeMessage = `👋 *Selamat Datang di Bot WhatsApp ${process.env.COMPANY_HEADER || 'ISP Monitor'}*\n\n`;
-
+        
         if (isAdmin) {
             welcomeMessage += `Halo Admin! Anda dapat menggunakan berbagai perintah untuk mengelola sistem.\n\n`;
         } else {
             welcomeMessage += `Halo Pelanggan! Anda dapat menggunakan bot ini untuk mengelola perangkat Anda.\n\n`;
         }
-
+        
         welcomeMessage += `Ketik *menu* untuk melihat daftar perintah yang tersedia.\n\n`;
-
+        
         // Tambahkan footer
         welcomeMessage += `🏢 *${process.env.COMPANY_HEADER || 'ISP Monitor'}*\n`;
         welcomeMessage += `${process.env.FOOTER_INFO || ''}`;
-
+        
         // Kirim pesan selamat datang
         await sock.sendMessage(remoteJid, { text: welcomeMessage });
         console.log(`Pesan selamat datang terkirim ke ${remoteJid}`);
-
+        
         return true;
     } catch (error) {
         console.error('Error sending welcome message:', error);
@@ -3989,7 +3902,7 @@ async function sendWelcomeMessage(remoteJid, isAdmin = false) {
 function encodeDeviceId(deviceId) {
     // Pastikan deviceId adalah string
     const idString = String(deviceId);
-
+    
     // Encode komponen-komponen URL secara terpisah
     return idString.split('/').map(part => encodeURIComponent(part)).join('/');
 }
@@ -4001,7 +3914,7 @@ function getWhatsAppStatus() {
         if (global.whatsappStatus) {
             return global.whatsappStatus;
         }
-
+        
         if (!sock) {
             return {
                 connected: false,
@@ -4041,7 +3954,7 @@ async function deleteWhatsAppSession() {
         const sessionDir = process.env.WHATSAPP_SESSION_PATH || './whatsapp-session';
         const fs = require('fs');
         const path = require('path');
-
+        
         // Hapus semua file di direktori sesi
         if (fs.existsSync(sessionDir)) {
             const files = fs.readdirSync(sessionDir);
@@ -4050,9 +3963,9 @@ async function deleteWhatsAppSession() {
             }
             console.log(`Menghapus ${files.length} file sesi WhatsApp`);
         }
-
+        
         console.log('Sesi WhatsApp berhasil dihapus');
-
+        
         // Reset status
         global.whatsappStatus = {
             connected: false,
@@ -4061,7 +3974,7 @@ async function deleteWhatsAppSession() {
             connectedSince: null,
             status: 'session_deleted'
         };
-
+        
         // Restart koneksi WhatsApp
         if (sock) {
             try {
@@ -4070,12 +3983,12 @@ async function deleteWhatsAppSession() {
                 console.log('Error saat logout:', error);
             }
         }
-
+        
         // Mulai ulang koneksi setelah 2 detik
         setTimeout(() => {
             connectToWhatsApp();
         }, 2000);
-
+        
         return { success: true, message: 'Sesi WhatsApp berhasil dihapus' };
     } catch (error) {
         console.error('Error saat menghapus sesi WhatsApp:', error);
@@ -4105,17 +4018,17 @@ async function handleIncomingMessage(sock, message) {
     try {
         // Validasi input
         if (!message || !message.key) {
-            console.warn('Invalid message received', { message: typeof message });
+            logger.warn('Invalid message received', { message: typeof message });
             return;
         }
-
+        
         // Ekstrak informasi pesan
         const remoteJid = message.key.remoteJid;
         if (!remoteJid) {
             logger.warn('Message without remoteJid received', { messageKey: message.key });
             return;
         }
-
+        
         // Skip jika pesan dari grup dan bukan dari admin
         if (remoteJid.includes('@g.us')) {
             logger.debug('Message from group received', { groupJid: remoteJid });
@@ -4126,14 +4039,14 @@ async function handleIncomingMessage(sock, message) {
             }
             logger.info('Group message from admin, processing', { participant });
         }
-
+        
         // Cek tipe pesan dan ekstrak teks
         let messageText = '';
         if (!message.message) {
             logger.debug('Message without content received', { messageType: 'unknown' });
             return;
         }
-
+        
         if (message.message.conversation) {
             messageText = message.message.conversation;
             logger.debug('Conversation message received');
@@ -4142,12 +4055,12 @@ async function handleIncomingMessage(sock, message) {
             logger.debug('Extended text message received');
         } else {
             // Tipe pesan tidak didukung
-            logger.debug('Unsupported message type received', {
-                messageTypes: Object.keys(message.message)
+            logger.debug('Unsupported message type received', { 
+                messageTypes: Object.keys(message.message) 
             });
             return;
         }
-
+        
         // Ekstrak nomor pengirim dengan penanganan error
         let senderNumber;
         try {
@@ -4156,153 +4069,29 @@ async function handleIncomingMessage(sock, message) {
             logger.error('Error extracting sender number', { remoteJid, error: error.message });
             return;
         }
-
+        
         logger.info(`Message received`, { sender: senderNumber, messageLength: messageText.length });
         logger.debug(`Message content`, { sender: senderNumber, message: messageText });
-
+        
         // Cek apakah pengirim adalah admin
         const isAdmin = isAdminNumber(senderNumber);
-        const participant = message.key.participant || remoteJid;
-        const participantNumber = participant.split('@')[0];
-
-        logger.debug(`Sender identity check`, {
-            sender: senderNumber,
-            participant: participantNumber,
-            isAdmin: isAdmin,
-            fromMe: message.key.fromMe
-        });
-
-        // Cek juga participant jika berbeda (misal di grup atau karena LID mapping)
-        let isParticipantAdmin = false;
-        if (senderNumber !== participantNumber) {
-            isParticipantAdmin = isAdminNumber(participantNumber);
-            if (isParticipantAdmin && !isAdmin) {
-                logger.info(`Admin recognized via participant ID`, { participant: participantNumber });
-                // Jika participant adalah admin, kita anggap sender juga admin
-                // Ini membantu jika senderNumber adalah LID tapi participant adalah nomor asli (atau sebaliknya)
-            }
-        }
-
+        logger.debug(`Sender admin status`, { sender: senderNumber, isAdmin });
+        
         // Jika pesan kosong, abaikan
         if (!messageText.trim()) {
             logger.debug('Empty message, ignoring');
             return;
         }
-
-        // Proses perintah
-        const command = messageText.trim().toLowerCase();
-
-        // Handler REG ADMIN
-        if (command.startsWith('reg admin ')) {
-            const inputSecret = messageText.split(' ').slice(2).join(' ').trim();
-            // Gunakan password admin dari settings.json (default: admin)
-            const adminPassword = settingsManager.getSetting('admin_password', 'admin');
-
-            if (inputSecret === adminPassword) {
-                const settings = settingsManager.getSettingsWithCache();
-
-                // Inisialisasi array admins jika belum ada
-                if (!settings.admins) {
-                    settings.admins = [];
-                }
-
-                // Cek apakah LID sudah terdaftar
-                if (!settings.admins.includes(remoteJid)) {
-                    settings.admins.push(remoteJid);
-
-                    if (settingsManager.saveSettings(settings)) {
-                        await sendFormattedMessage(remoteJid, `✅ *REGISTRASI ADMIN BERHASIL!*\n\nNomor/LID Anda (${remoteJid}) telah ditambahkan ke daftar admin.\nSekarang Anda memiliki akses penuh ke menu admin.`);
-                        logger.info(`New admin registered via REG ADMIN: ${remoteJid}`);
-                    } else {
-                        await sendFormattedMessage(remoteJid, `❌ *Gagal menyimpan data admin.*`);
-                    }
-                } else {
-                    await sendFormattedMessage(remoteJid, `⚠️ *Anda sudah terdaftar sebagai admin.*`);
-                }
-            } else {
-                await sendFormattedMessage(remoteJid, `❌ *Password Salah!*\n\nFormat: *REG ADMIN [password_admin]*`);
-            }
-            return;
-        }
-
-        // Handler DAFTAR (Self-Service Registration)
-        if (command.startsWith('daftar ')) {
-            const params = messageText.slice(7).split('#');
-            if (params.length < 2) {
-                await sendFormattedMessage(remoteJid, `❌ *FORMAT SALAH*\n\nFormat: *DAFTAR [Nama]#[Username PPPoE]*\nContoh: *DAFTAR Budi Santoso#budi123*`);
-                return;
-            }
-
-            const name = params[0].trim();
-            const pppoeUsername = params[1].trim();
-
-            if (!name || !pppoeUsername) {
-                await sendFormattedMessage(remoteJid, `❌ *DATA TIDAK LENGKAP*\n\nNama dan Username PPPoE wajib diisi.`);
-                return;
-            }
-
-            try {
-                // Cek apakah username sudah ada
-                const existing = customerManager.findCustomer({ pppoeUsername });
-                if (existing) {
-                    await sendFormattedMessage(remoteJid, `❌ *USERNAME SUDAH TERPAKAI*\n\nUsername PPPoE '${pppoeUsername}' sudah terdaftar.\nJika ini milik Anda, silakan gunakan perintah *REG ${pppoeUsername}*`);
-                    return;
-                }
-
-                // Buat customer baru
-                const newCustomer = customerManager.createCustomer({
-                    name,
-                    pppoeUsername,
-                    whatsappNumber: senderNumber, // Simpan nomor pengirim sebagai referensi
-                    whatsappLid: remoteJid        // Simpan LID langsung untuk auto-link
-                });
-
-                await sendFormattedMessage(remoteJid, `✅ *PENDAFTARAN BERHASIL!*\n\nHalo *${newCustomer.name}*,\nData Anda telah berhasil dibuat dan terhubung.\n\nUsername: ${newCustomer.pppoeUsername}\n\nSekarang Anda dapat menggunakan menu bot sepenuhnya.`);
-                logger.info(`New customer registered via DAFTAR: ${name} (${pppoeUsername})`);
-            } catch (error) {
-                console.error('Registration error:', error);
-                await sendFormattedMessage(remoteJid, `❌ *PENDAFTARAN GAGAL*\n\n${error.message}`);
-            }
-            return;
-        }
-
-        // Handler REG (Link Existing Customer)
-        if (command.startsWith('reg ')) {
-            const keyword = messageText.split(' ').slice(1).join(' ');
-
-            if (!keyword) {
-                await sendFormattedMessage(remoteJid, `❌ *FORMAT SALAH*\n\nSilakan ketik:\n*REG [Username Internet]*\natau\n*REG [Nomor HP Terdaftar]*\n\nContoh:\n*REG user123*\n*REG 081234567890*`);
-                return;
-            }
-
-            try {
-                const customer = customerManager.linkCustomerLid(keyword, remoteJid);
-
-                await sendFormattedMessage(remoteJid, `✅ *REGISTRASI BERHASIL!*\n\nHalo *${customer.name}*,\nWhatsApp Anda berhasil terhubung dengan data pelanggan.\n\nUsername: ${customer.pppoeUsername}\n\nSekarang Anda dapat menggunakan fitur bot tanpa perlu memasukkan nomor pelanggan lagi.`);
-            } catch (error) {
-                console.error('Registration error:', error);
-                await sendFormattedMessage(remoteJid, `❌ *REGISTRASI GAGAL*\n\n${error.message}`);
-            }
-            return;
-        }
-
-        // Cek apakah pengirim belum terdaftar (untuk perintah menu/info, dll)
-        // Hanya cek jika bukan admin dan perintah valid (bukan pesan sembarangan)
-        const knownCommands = ['menu', 'info', 'status', 'help'];
-        if (knownCommands.includes(command) && !isAdmin) {
-            const existingCustomer = customerManager.findCustomer({ lid: remoteJid });
-            if (!existingCustomer) {
-                await sendFormattedMessage(remoteJid, `👋 *Halo!*\n\nNomor WhatsApp Anda belum terdaftar di sistem kami.\n\nSimpan data Anda agar bisa menggunakan bot ini:\n\n1️⃣ *Jika Belum Punya Akun:*\nKetik: *DAFTAR [Nama]#[Username PPPoE]*\nContoh: *DAFTAR Budi#budi123*\n\n2️⃣ *Jika Sudah Ada Data (tapi belum connect WA):*\nKetik: *REG [Username PPPoE]*\nContoh: *REG budi123*`);
-                return;
-            }
-        }
+        
+// Proses perintah
+const command = messageText.trim().toLowerCase();
 
         // Handler setheader
-        if (command.startsWith('setheader ')) {
+if (command.startsWith('setheader ')) {
             if (!isAdmin) {
                 await sendFormattedMessage(remoteJid, '❌ *Hanya admin yang dapat mengubah header!*');
-                return;
-            }
+return;
+}
             const newHeader = messageText.split(' ').slice(1).join(' ');
             if (!newHeader) {
                 await sendFormattedMessage(remoteJid, '❌ *Format salah!*\n\nsetheader [teks_header_baru]');
@@ -4318,24 +4107,24 @@ async function handleIncomingMessage(sock, message) {
         }
 
         // Handler setfooter
-        if (command.startsWith('setfooter ')) {
+if (command.startsWith('setfooter ')) {
             if (!isAdmin) {
                 await sendFormattedMessage(remoteJid, '❌ *Hanya admin yang dapat mengubah footer!*');
-                return;
-            }
+return;
+}
             const newFooter = messageText.split(' ').slice(1).join(' ');
             if (!newFooter) {
                 await sendFormattedMessage(remoteJid, '❌ *Format salah!*\n\nsetfooter [teks_footer_baru]');
-                return;
-            }
+return;
+}
             const settingsPath = path.join(__dirname, '../settings.json');
             let settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
             settings.footer_info = newFooter;
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
             updateConfig({ footerInfo: newFooter });
             await sendFormattedMessage(remoteJid, `✅ *Footer berhasil diubah ke:*\n${newFooter}`);
-            return;
-        }
+return;
+}
 
         // Handler setadmin
         if (command.startsWith('setadmin ')) {
@@ -4379,19 +4168,19 @@ async function handleIncomingMessage(sock, message) {
                 await sendFormattedMessage(remoteJid, '❌ *Hanya admin yang dapat mengubah GenieACS config!*');
                 return;
             }
-            const params = messageText.split(' ').slice(1);
+const params = messageText.split(' ').slice(1);
             if (params.length < 3) {
                 await sendFormattedMessage(remoteJid, '❌ *Format salah!*\n\nsetgenieacs [url] [username] [password]');
-                return;
-            }
+return;
+}
             let settings = getAppSettings();
             settings.genieacs_url = params[0];
             settings.genieacs_username = params[1];
             settings.genieacs_password = params.slice(2).join(' ');
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
             await sendFormattedMessage(remoteJid, `✅ *Konfigurasi GenieACS berhasil diubah!*`);
-            return;
-        }
+return;
+}
 
         // Handler setmikrotik
         if (command.startsWith('setmikrotik ')) {
@@ -4412,21 +4201,21 @@ async function handleIncomingMessage(sock, message) {
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
             await sendFormattedMessage(remoteJid, `✅ *Konfigurasi Mikrotik berhasil diubah!*`);
             return;
-        }
-
-        // Perintah untuk mengaktifkan/menonaktifkan GenieACS (hanya untuk admin)
-        // Perintah ini selalu diproses terlepas dari status genieacsCommandsEnabled
-
+}
+        
+// Perintah untuk mengaktifkan/menonaktifkan GenieACS (hanya untuk admin)
+// Perintah ini selalu diproses terlepas dari status genieacsCommandsEnabled
+        
         // Perintah untuk menonaktifkan pesan GenieACS (hanya untuk admin)
         if (command.toLowerCase() === 'genieacs stop' && isAdmin) {
-            console.log(`Admin ${senderNumber} menonaktifkan pesan GenieACS`);
-            genieacsCommandsEnabled = false;
+    console.log(`Admin ${senderNumber} menonaktifkan pesan GenieACS`);
+    genieacsCommandsEnabled = false;
             await sendFormattedMessage(remoteJid, `✅ *PESAN GenieACS DINONAKTIFKAN*
 
 
 Pesan GenieACS telah dinonaktifkan. Hubungi admin untuk mengaktifkan kembali.`);
-            return;
-        }
+    return;
+}
 
         // Perintah untuk mengaktifkan kembali pesan GenieACS (hanya untuk admin)
         if (command.toLowerCase() === 'genieacs start060111' && isAdmin) {
@@ -4438,14 +4227,14 @@ Pesan GenieACS telah dinonaktifkan. Hubungi admin untuk mengaktifkan kembali.`);
 Pesan GenieACS telah diaktifkan kembali.`);
             return;
         }
-
+        
         // Jika GenieACS dinonaktifkan, abaikan semua perintah kecuali dari nomor 6281947215703
         if (!genieacsCommandsEnabled && senderNumber !== '6281947215703') {
             // Hanya nomor 6281947215703 yang bisa menggunakan bot saat GenieACS dinonaktifkan
             console.log(`Pesan diabaikan karena GenieACS dinonaktifkan dan bukan dari nomor khusus: ${senderNumber}`);
             return;
         }
-
+        
         // Perintah stop GenieACS (khusus super admin)
         if (command === 'genieacs stop') {
             if (senderNumber === superAdminNumber) {
@@ -4468,33 +4257,33 @@ Pesan GenieACS telah diaktifkan kembali.`);
             return;
         }
         // Perintah menu (ganti help)
-        if (command === 'menu' || command === '!menu' || command === '/menu' || command === 'help' || command === '!help' || command === '/help') {
+        if (command === 'menu' || command === '!menu' || command === '/menu') {
             console.log(`Menjalankan perintah menu untuk ${senderNumber}`);
             await handleHelpCommand(remoteJid, isAdmin);
             return;
         }
-
+        
         // Perintah status
         if (command === 'status' || command === '!status' || command === '/status') {
             console.log(`Menjalankan perintah status untuk ${senderNumber}`);
             await handleStatusCommand(senderNumber, remoteJid);
             return;
         }
-
+        
         // Perintah refresh
         if (command === 'refresh' || command === '!refresh' || command === '/refresh') {
             console.log(`Menjalankan perintah refresh untuk ${senderNumber}`);
             await handleRefreshCommand(senderNumber, remoteJid);
             return;
         }
-
+        
         // Perintah admin
         if ((command === 'admin' || command === '!admin' || command === '/admin') && isAdmin) {
             console.log(`Menjalankan perintah admin untuk ${senderNumber}`);
             await handleAdminMenu(remoteJid);
             return;
         }
-
+        
         // Perintah untuk menonaktifkan/mengaktifkan GenieACS telah dipindahkan ke atas
 
         // Perintah factory reset (untuk pelanggan)
@@ -4574,7 +4363,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 customerNumber = messageText.trim().split(' ')[1];
             } else {
                 // Handle tanpa spasi, misal cekstatus081321960111
-                customerNumber = command.replace('cekstatus', '').trim();
+                customerNumber = command.replace('cekstatus','').trim();
             }
             if (customerNumber && /^\d{8,}$/.test(customerNumber)) {
                 await handleAdminCheckONU(remoteJid, customerNumber);
@@ -4586,12 +4375,12 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 return;
             }
         }
-
+        
         // Perintah ganti WiFi
         if (isWifiCommand(command)) {
             console.log(`Menjalankan perintah ganti WiFi untuk ${senderNumber}`);
             const params = messageText.split(' ').slice(1);
-
+            
             // Jika admin menggunakan perintah gantiwifi dengan format: gantiwifi [nomor_pelanggan] [ssid]
             if (isAdmin && params.length >= 2) {
                 // Anggap parameter pertama sebagai nomor pelanggan
@@ -4605,12 +4394,12 @@ Pesan GenieACS telah diaktifkan kembali.`);
             }
             return;
         }
-
+        
         // Perintah ganti password
         if (isPasswordCommand(command.split(' ')[0])) {
             console.log(`Menjalankan perintah ganti password untuk ${senderNumber}`);
             const params = messageText.split(' ').slice(1);
-
+            
             // Jika admin menggunakan perintah gantipassword dengan format: gantipassword [nomor_pelanggan] [password]
             if (isAdmin && params.length >= 2) {
                 // Anggap parameter pertama sebagai nomor pelanggan
@@ -4624,7 +4413,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
             }
             return;
         }
-
+        
         // Jika admin, cek perintah admin lainnya
         if (isAdmin) {
             // Perintah cek ONU
@@ -4636,7 +4425,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah edit SSID
             if (command.toLowerCase().startsWith('editssid ') || command.toLowerCase().startsWith('!editssid ') || command.toLowerCase().startsWith('/editssid ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4645,17 +4434,17 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     await handleAdminEditSSID(remoteJid, params);
                     return;
                 } else {
-                    await sock.sendMessage(remoteJid, {
+                    await sock.sendMessage(remoteJid, { 
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `editssid [nomor_pelanggan] [ssid_baru]\n\n` +
-                            `Contoh:\n` +
-                            `editssid 123456 RumahKu`
+                              `Format yang benar:\n` +
+                              `editssid [nomor_pelanggan] [ssid_baru]\n\n` +
+                              `Contoh:\n` +
+                              `editssid 123456 RumahKu`
                     });
                     return;
                 }
             }
-
+            
             // Perintah edit password
             if (command.toLowerCase().startsWith('editpass ') || command.toLowerCase().startsWith('!editpass ') || command.toLowerCase().startsWith('/editpass ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4666,10 +4455,10 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 } else {
                     await sock.sendMessage(remoteJid, {
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `editpass [nomor_pelanggan] [password_baru]\n\n` +
-                            `Contoh:\n` +
-                            `editpass 123456 password123`
+                              `Format yang benar:\n` +
+                              `editpass [nomor_pelanggan] [password_baru]\n\n` +
+                              `Contoh:\n` +
+                              `editpass 123456 password123`
                     });
                     return;
                 }
@@ -4689,10 +4478,10 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 } else {
                     await sock.sendMessage(remoteJid, {
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `detail [nomor_pelanggan]\n\n` +
-                            `Contoh:\n` +
-                            `detail 081234567890`
+                              `Format yang benar:\n` +
+                              `detail [nomor_pelanggan]\n\n` +
+                              `Contoh:\n` +
+                              `detail 081234567890`
                     });
                     return;
                 }
@@ -4712,10 +4501,10 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 } else {
                     await sock.sendMessage(remoteJid, {
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `adminrestart [nomor_pelanggan]\n\n` +
-                            `Contoh:\n` +
-                            `adminrestart 081234567890`
+                              `Format yang benar:\n` +
+                              `adminrestart [nomor_pelanggan]\n\n` +
+                              `Contoh:\n` +
+                              `adminrestart 081234567890`
                     });
                     return;
                 }
@@ -4735,10 +4524,10 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 } else {
                     await sock.sendMessage(remoteJid, {
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `adminfactory [nomor_pelanggan]\n\n` +
-                            `Contoh:\n` +
-                            `adminfactory 081234567890`
+                              `Format yang benar:\n` +
+                              `adminfactory [nomor_pelanggan]\n\n` +
+                              `Contoh:\n` +
+                              `adminfactory 081234567890`
                     });
                     return;
                 }
@@ -4850,36 +4639,36 @@ Pesan GenieACS telah diaktifkan kembali.`);
                         default:
                             await sock.sendMessage(remoteJid, {
                                 text: `❌ *PERINTAH TIDAK DIKENAL*\n\n` +
-                                    `Perintah PPPoE yang tersedia:\n` +
-                                    `• pppoe on - Aktifkan notifikasi\n` +
-                                    `• pppoe off - Nonaktifkan notifikasi\n` +
-                                    `• pppoe status - Lihat status\n` +
-                                    `• pppoe addadmin [nomor] - Tambah admin\n` +
-                                    `• pppoe addtech [nomor] - Tambah teknisi\n` +
-                                    `• pppoe removeadmin [nomor] - Hapus admin\n` +
-                                    `• pppoe removetech [nomor] - Hapus teknisi\n` +
-                                    `• pppoe interval [detik] - Ubah interval\n` +
-                                    `• pppoe test - Test notifikasi`
+                                      `Perintah PPPoE yang tersedia:\n` +
+                                      `• pppoe on - Aktifkan notifikasi\n` +
+                                      `• pppoe off - Nonaktifkan notifikasi\n` +
+                                      `• pppoe status - Lihat status\n` +
+                                      `• pppoe addadmin [nomor] - Tambah admin\n` +
+                                      `• pppoe addtech [nomor] - Tambah teknisi\n` +
+                                      `• pppoe removeadmin [nomor] - Hapus admin\n` +
+                                      `• pppoe removetech [nomor] - Hapus teknisi\n` +
+                                      `• pppoe interval [detik] - Ubah interval\n` +
+                                      `• pppoe test - Test notifikasi`
                             });
                             return;
                     }
                 }
             }
-
+            
             // Perintah list ONU
             if (command === 'list' || command === '!list' || command === '/list') {
                 console.log(`Menjalankan perintah list ONU`);
                 await handleListONU(remoteJid);
                 return;
             }
-
+            
             // Perintah cek semua ONU
             if (command === 'cekall' || command === '!cekall' || command === '/cekall') {
                 console.log(`Menjalankan perintah cek semua ONU`);
                 await handleCheckAllONU(remoteJid);
                 return;
             }
-
+            
             // Perintah hapus user hotspot
             if (command.startsWith('delhotspot ') || command.startsWith('!delhotspot ') || command.startsWith('/delhotspot ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4889,7 +4678,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah hapus secret PPPoE
             if (command.startsWith('delpppoe ') || command.startsWith('!delpppoe ') || command.startsWith('/delpppoe ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4899,7 +4688,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah tambah user hotspot
             if (command.startsWith('addhotspot ') || command.startsWith('!addhotspot ') || command.startsWith('/addhotspot ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4909,7 +4698,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah tambah secret PPPoE
             if (command.startsWith('addpppoe ') || command.startsWith('!addpppoe ') || command.startsWith('/addpppoe ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4919,7 +4708,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah ubah profile PPPoE
             if (command.startsWith('setprofile ') || command.startsWith('!setprofile ') || command.startsWith('/setprofile ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4929,14 +4718,14 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     return;
                 }
             }
-
+            
             // Perintah info resource
             if (command === 'resource' || command === '!resource' || command === '/resource') {
                 console.log(`Menjalankan perintah info resource`);
                 await handleResourceInfo(remoteJid);
                 return;
             }
-
+            
             // Perintah tambah WAN
             if (command.startsWith('addwan ') || command.startsWith('!addwan ') || command.startsWith('/addwan ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4945,21 +4734,21 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     await handleAddWAN(remoteJid, params);
                     return;
                 } else {
-                    await sock.sendMessage(remoteJid, {
+                    await sock.sendMessage(remoteJid, { 
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `addwan [nomor_pelanggan] [tipe_wan] [mode_koneksi]\n\n` +
-                            `Tipe WAN: ppp atau ip\n` +
-                            `Mode Koneksi: bridge atau route\n\n` +
-                            `Contoh:\n` +
-                            `addwan 081234567890 ppp route\n` +
-                            `addwan 081234567890 ppp bridge\n` +
-                            `addwan 081234567890 ip bridge`
+                              `Format yang benar:\n` +
+                              `addwan [nomor_pelanggan] [tipe_wan] [mode_koneksi]\n\n` +
+                              `Tipe WAN: ppp atau ip\n` +
+                              `Mode Koneksi: bridge atau route\n\n` +
+                              `Contoh:\n` +
+                              `addwan 081234567890 ppp route\n` +
+                              `addwan 081234567890 ppp bridge\n` +
+                              `addwan 081234567890 ip bridge`
                     });
                     return;
                 }
             }
-
+            
             // Perintah tambah tag pelanggan
             if (command.startsWith('addtag ') || command.startsWith('!addtag ') || command.startsWith('/addtag ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4968,17 +4757,17 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     await addCustomerTag(remoteJid, params);
                     return;
                 } else {
-                    await sock.sendMessage(remoteJid, {
+                    await sock.sendMessage(remoteJid, { 
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `addtag [device_id] [nomor_pelanggan]\n\n` +
-                            `Contoh:\n` +
-                            `addtag 202BC1-BM632w-000000 081234567890`
+                              `Format yang benar:\n` +
+                              `addtag [device_id] [nomor_pelanggan]\n\n` +
+                              `Contoh:\n` +
+                              `addtag 202BC1-BM632w-000000 081234567890`
                     });
                     return;
                 }
             }
-
+            
             // Perintah tambah tag pelanggan berdasarkan PPPoE Username
             if (command.startsWith('addpppoe_tag ') || command.startsWith('!addpppoe_tag ') || command.startsWith('/addpppoe_tag ')) {
                 const params = messageText.split(' ').slice(1);
@@ -4987,31 +4776,31 @@ Pesan GenieACS telah diaktifkan kembali.`);
                     await addTagByPPPoE(remoteJid, params, sock); // <-- TAMBAHKAN sock di sini!
                     return;
                 } else {
-                    await sock.sendMessage(remoteJid, {
+                    await sock.sendMessage(remoteJid, { 
                         text: `❌ *FORMAT Salah!*\n\n` +
-                            `Format yang benar:\n` +
-                            `addpppoe_tag [pppoe_username] [nomor_pelanggan]\n\n` +
-                            `Contoh:\n` +
-                            `addpppoe_tag user123 081234567890`
+                              `Format yang benar:\n` +
+                              `addpppoe_tag [pppoe_username] [nomor_pelanggan]\n\n` +
+                              `Contoh:\n` +
+                              `addpppoe_tag user123 081234567890`
                     });
                     return;
                 }
             }
-
+            
             // Perintah user hotspot aktif
             if (command === 'hotspot' || command === '!hotspot' || command === '/hotspot') {
                 console.log(`Menjalankan perintah user hotspot aktif`);
                 await handleActiveHotspotUsers(remoteJid);
                 return;
             }
-
+            
             // Perintah koneksi PPPoE aktif
             if (command === 'pppoe' || command === '!pppoe' || command === '/pppoe') {
                 console.log(`Menjalankan perintah koneksi PPPoE aktif`);
                 await handleActivePPPoE(remoteJid);
                 return;
             }
-
+            
             // Perintah user PPPoE offline
             if (command === 'offline' || command === '!offline' || command === '/offline') {
                 console.log(`Menjalankan perintah user PPPoE offline`);
@@ -5157,7 +4946,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 await mikrotikCommands.handleDebugResource(remoteJid);
                 return;
             }
-
+            
             // Perintah info wifi
             if (command === 'info wifi' || command === '!info wifi' || command === '/info wifi') {
                 console.log(`Menjalankan perintah info wifi untuk ${senderNumber}`);
@@ -5168,7 +4957,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Perintah ganti nama WiFi
             if (command.startsWith('gantiwifi ') || command.startsWith('!gantiwifi ') || command.startsWith('/gantiwifi ')) {
                 console.log(`Menjalankan perintah ganti nama WiFi untuk ${senderNumber}`);
@@ -5180,7 +4969,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Perintah ganti password WiFi
             if (command.startsWith('gantipass ') || command.startsWith('!gantipass ') || command.startsWith('/gantipass ')) {
                 console.log(`Menjalankan perintah ganti password WiFi untuk ${senderNumber}`);
@@ -5192,7 +4981,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Perintah status perangkat
             if (command === 'status' || command === '!status' || command === '/status') {
                 console.log(`Menjalankan perintah status perangkat untuk ${senderNumber}`);
@@ -5203,7 +4992,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Perintah restart perangkat
             if (command === 'restart' || command === '!restart' || command === '/restart') {
                 console.log(`Menjalankan perintah restart perangkat untuk ${senderNumber}`);
@@ -5214,7 +5003,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Konfirmasi restart perangkat
             if ((command === 'ya' || command === 'iya' || command === 'yes') && global.pendingRestarts && global.pendingRestarts[senderNumber]) {
                 console.log(`Konfirmasi restart perangkat untuk ${senderNumber}`);
@@ -5225,7 +5014,7 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 }
                 return;
             }
-
+            
             // Batalkan restart perangkat
             if ((command === 'tidak' || command === 'no' || command === 'batal') && global.pendingRestarts && global.pendingRestarts[senderNumber]) {
                 console.log(`Membatalkan restart perangkat untuk ${senderNumber}`);
@@ -5237,18 +5026,18 @@ Pesan GenieACS telah diaktifkan kembali.`);
                 return;
             }
         }
-
+        
         // Jika pesan tidak dikenali sebagai perintah, abaikan saja
         console.log(`Pesan tidak dikenali sebagai perintah: ${messageText}`);
         // Tidak melakukan apa-apa untuk pesan yang bukan perintah
-
+        
     } catch (error) {
         console.error('Error handling incoming message:', error);
-
+        
         // Coba kirim pesan error ke pengirim
         try {
             if (sock && message && message.key && message.key.remoteJid) {
-                await sock.sendMessage(message.key.remoteJid, {
+                await sock.sendMessage(message.key.remoteJid, { 
                     text: `❌ *ERROR*\n\nTerjadi kesalahan saat memproses pesan: ${error.message}\n\nSilakan coba lagi nanti.`
                 });
             }
@@ -5260,55 +5049,33 @@ Pesan GenieACS telah diaktifkan kembali.`);
 
 // Tambahkan di bagian deklarasi fungsi sebelum module.exports
 
-// Handler untuk perintah help/menu
-async function handleHelpCommand(remoteJid, isAdmin) {
-    try {
-        console.log(`Menampilkan menu bantuan untuk ${remoteJid} (Admin: ${isAdmin})`);
-
-        let message;
-        if (isAdmin) {
-            message = helpMessages.getAdminHelpMessage();
-        } else {
-            message = helpMessages.getCustomerHelpMessage();
-        }
-
-        // Kirim pesan dengan header dan footer (yang sudah ada di helpMessages tapi kita pastikan formatnya benar)
-        await sock.sendMessage(remoteJid, { text: message });
-
-        return true;
-    } catch (error) {
-        console.error('Error sending help message:', error);
-        return false;
-    }
-}
-
 // Fungsi untuk menampilkan menu admin
 async function handleAdminMenu(remoteJid) {
     try {
         console.log(`Menampilkan menu admin ke ${remoteJid}`);
-
+        
         // Pesan menu admin
         let adminMessage = `👨‍💼 *MENU ADMIN*\n\n`;
-
+        
         adminMessage += `*Perintah Admin:*\n`;
         adminMessage += `• 📋 *list* — Daftar semua ONU\n`;
         adminMessage += `• 🔍 *cekall* — Cek status semua ONU\n`;
         adminMessage += `• 🔍 *cek [nomor]* — Cek status ONU pelanggan\n`;
         adminMessage += `• 📶 *editssid [nomor] [ssid]* — Edit SSID pelanggan\n`;
         adminMessage += `• 🔒 *editpass [nomor] [password]* — Edit password WiFi pelanggan\n\n`;
-
+        
         // Status GenieACS (tanpa menampilkan perintah)
         adminMessage += `*Status Sistem:*\n`;
         adminMessage += `• ${genieacsCommandsEnabled ? '✅' : '❌'} *GenieACS:* ${genieacsCommandsEnabled ? 'Aktif' : 'Nonaktif'}\n\n`;
-
+        
         // Tambahkan footer
         adminMessage += `🏢 *${process.env.COMPANY_HEADER || 'ISP Monitor'}*\n`;
         adminMessage += `${process.env.FOOTER_INFO || ''}`;
-
+        
         // Kirim pesan menu admin
         await sock.sendMessage(remoteJid, { text: adminMessage });
         console.log(`Pesan menu admin terkirim ke ${remoteJid}`);
-
+        
         return true;
     } catch (error) {
         console.error('Error sending admin menu:', error);
@@ -5320,42 +5087,42 @@ async function handleAdminMenu(remoteJid) {
 function getSSIDValue(device, configIndex) {
     try {
         // Coba cara 1: Menggunakan notasi bracket untuk WLANConfiguration
-        if (device.InternetGatewayDevice &&
-            device.InternetGatewayDevice.LANDevice &&
-            device.InternetGatewayDevice.LANDevice['1'] &&
-            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration &&
-            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex] &&
+        if (device.InternetGatewayDevice && 
+            device.InternetGatewayDevice.LANDevice && 
+            device.InternetGatewayDevice.LANDevice['1'] && 
+            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration && 
+            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex] && 
             device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex].SSID) {
-
+            
             const ssidObj = device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex].SSID;
             if (ssidObj._value !== undefined) {
                 return ssidObj._value;
             }
         }
-
+        
         // Coba cara 2: Menggunakan getParameterWithPaths
         const ssidPath = `InternetGatewayDevice.LANDevice.1.WLANConfiguration.${configIndex}.SSID`;
         const ssidValue = getParameterWithPaths(device, [ssidPath]);
         if (ssidValue && ssidValue !== 'N/A') {
             return ssidValue;
         }
-
+        
         // Coba cara 3: Cari di seluruh objek
         for (const key in device) {
             if (device[key]?.LANDevice?.['1']?.WLANConfiguration?.[configIndex]?.SSID?._value) {
                 return device[key].LANDevice['1'].WLANConfiguration[configIndex].SSID._value;
             }
         }
-
+        
         // Coba cara 4: Cari di parameter virtual
         if (device.VirtualParameters?.SSID?._value) {
             return device.VirtualParameters.SSID._value;
         }
-
+        
         if (configIndex === '5' && device.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['2']?.SSID?._value) {
             return device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration['2'].SSID._value;
         }
-
+        
         return 'N/A';
     } catch (error) {
         console.error(`Error getting SSID for config ${configIndex}:`, error);

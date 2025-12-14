@@ -435,3 +435,21 @@ RosException
     at processTicksAndRejections (node:internal/process/task_queues:90:21)
     at runNextTicks (node:internal/process/task_queues:69:3)
     at process.processTimers (node:internal/timers:526:9)
+2025-12-12 19:59:57 error: uncaughtException: Cannot find module './whatsapp-version'
+Require stack:
+- E:\wa-only\config\whatsapp.js
+- E:\wa-only\app-whatsapp-only.js
+Error: Cannot find module './whatsapp-version'
+Require stack:
+- E:\wa-only\config\whatsapp.js
+- E:\wa-only\app-whatsapp-only.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1244:15)
+    at Function._load (node:internal/modules/cjs/loader:1070:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:217:24)
+    at Module.require (node:internal/modules/cjs/loader:1335:12)
+    at require (node:internal/modules/helpers:136:16)
+    at Object.<anonymous> (E:\wa-only\config\whatsapp.js:6:30)
+    at Module._compile (node:internal/modules/cjs/loader:1562:14)
+    at Object..js (node:internal/modules/cjs/loader:1699:10)
+    at Module.load (node:internal/modules/cjs/loader:1313:32)

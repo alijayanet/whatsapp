@@ -1,0 +1,20 @@
+[
+  {
+    "id": "d1f7a4ba-d7ac-47d7-beaf-0aada5add150",
+    "name": "tester",
+    "whatsappNumber": "081947215703",
+    "whatsappLid": "85280887435270@lid",
+    "pppoeUsername": "server_umi",
+    "createdAt": "2025-12-13T14:37:24.874Z",
+    "updatedAt": "2025-12-13T14:49:01.233Z"
+  },
+  {
+    "id": "4c03e874-7ff8-43f2-bc3f-96fd93118413",
+    "name": "adiva",
+    "whatsappNumber": "270471874478227",
+    "whatsappLid": "270471874478227@lid",
+    "pppoeUsername": "cecep",
+    "createdAt": "2025-12-14T00:48:48.165Z",
+    "updatedAt": "2025-12-14T00:48:48.165Z"
+  }
+]

@@ -167,11 +167,37 @@ function formatResponse(message) {
 }
 
 // Get device by phone number
+const customerManager = require('./customerManager');
+
+// Get device by phone number or LID
 async function getDeviceByNumber(phoneNumber) {
     try {
+        // 1. Cek di database pelanggan lokal (support LID & Phone)
+        const customer = customerManager.findCustomer({
+            lid: phoneNumber,        // phoneNumber pass here might be an LID (username@lid)
+            phoneNumber: phoneNumber // or a real phone number
+        });
+
+        if (customer && customer.pppoeUsername) {
+            logger.info(`Customer found: ${customer.name} (${customer.pppoeUsername}). Searching device by PPPoE...`);
+            const device = await genieacsApi.findDeviceByPPPoE(customer.pppoeUsername);
+            if (device) return device;
+        }
+
+        // 2. Fallback: Cari di GenieACS berdasarkan tag (Legacy)
+        // Hanya jika phoneNumber terlihat seperti nomor telepon
+        if (phoneNumber.includes('@')) {
+            // Jika ini LID dan tidak ada di database, kita tidak bisa mencarinya di tag (karena tag biasanya nomor HP)
+            // Tapi kita coba cari tag pppoe:[username] jika username ada di tag? Tidak, itu terlalu kompleks.
+            return null;
+        }
+
         return await genieacsApi.findDeviceByPhoneNumber(phoneNumber);
     } catch (error) {
-        logger.error(`Error finding device with phone number ${phoneNumber}: ${error.message}`);
+        // Jangan spam log jika error "No device found"
+        if (!error.message.includes('No device found')) {
+            logger.error(`Error finding device with phone number ${phoneNumber}: ${error.message}`);
+        }
         return null;
     }
 }
@@ -186,24 +212,24 @@ async function handleWifiInfo(remoteJid, senderNumber) {
     try {
         // Find device by sender's phone number
         const device = await getDeviceByNumber(senderNumber);
-        
+
         if (!device) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.deviceNotFoundResponse)
             });
             return;
         }
-        
+
         // Get SSID information
         const ssid = getSSIDValue(device, '1') || 'N/A';
         const ssid5G = getSSIDValue(device, '5') || 'N/A';
-        
+
         // Send WiFi information
         const wifiInfo = responses.wifiInfoResponse({
             ssid,
             ssid5G
         });
-        
+
         await sock.sendMessage(remoteJid, {
             text: formatResponse(wifiInfo)
         });
@@ -224,37 +250,37 @@ async function handleChangeWifiSSID(remoteJid, senderNumber, newSSID) {
 
     try {
         if (!newSSID || newSSID.length < 3 || newSSID.length > 32) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.changeWifiResponse.invalidFormat)
             });
             return;
         }
-        
+
         // Find device by sender's phone number
         const device = await getDeviceByNumber(senderNumber);
-        
+
         if (!device) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.deviceNotFoundResponse)
             });
             return;
         }
-        
+
         // Send processing message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.changeWifiResponse.processing(newSSID))
         });
-        
+
         // Set SSID parameter value
         await genieacsApi.setParameterValues(device._id, {
             'SSID': newSSID
         });
-        
+
         // Send success message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.changeWifiResponse.success(newSSID))
         });
-        
+
     } catch (error) {
         logger.error(`Error changing WiFi SSID: ${error.message}`);
         await sock.sendMessage(remoteJid, {
@@ -272,37 +298,37 @@ async function handleChangeWifiPassword(remoteJid, senderNumber, newPassword) {
 
     try {
         if (!newPassword || newPassword.length < 8 || newPassword.length > 63) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.changePasswordResponse.invalidFormat)
             });
             return;
         }
-        
+
         // Find device by sender's phone number
         const device = await getDeviceByNumber(senderNumber);
-        
+
         if (!device) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.deviceNotFoundResponse)
             });
             return;
         }
-        
+
         // Send processing message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.changePasswordResponse.processing)
         });
-        
+
         // Set password parameter value
         await genieacsApi.setParameterValues(device._id, {
             'KeyPassphrase': newPassword
         });
-        
+
         // Send success message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.changePasswordResponse.success)
         });
-        
+
     } catch (error) {
         logger.error(`Error changing WiFi password: ${error.message}`);
         await sock.sendMessage(remoteJid, {
@@ -321,14 +347,14 @@ async function handleDeviceStatus(remoteJid, senderNumber) {
     try {
         // Find device by sender's phone number
         const device = await getDeviceByNumber(senderNumber);
-        
+
         if (!device) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.deviceNotFoundResponse)
             });
             return;
         }
-        
+
         // Get device status information
         const lastInform = device._lastInform;
         const isOnline = getDeviceStatus(lastInform);
@@ -341,7 +367,7 @@ async function handleDeviceStatus(remoteJid, senderNumber) {
         const ssid = getSSIDValue(device, '1') || 'N/A';
         const ssid5G = getSSIDValue(device, '5') || 'N/A';
         const connectedUsers = getParameterWithPaths(device, parameterPaths.userConnected) || '0';
-        
+
         // Format device status
         const statusMessage = responses.statusResponse({
             isOnline,
@@ -356,12 +382,12 @@ async function handleDeviceStatus(remoteJid, senderNumber) {
             connectedUsers,
             lastInform: new Date(lastInform).toLocaleString()
         });
-        
+
         // Send status message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(statusMessage)
         });
-        
+
     } catch (error) {
         logger.error(`Error handling device status: ${error.message}`);
         await sock.sendMessage(remoteJid, {
@@ -380,26 +406,26 @@ async function handleRestartDevice(remoteJid, senderNumber) {
     try {
         // Find device by sender's phone number
         const device = await getDeviceByNumber(senderNumber);
-        
+
         if (!device) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.deviceNotFoundResponse)
             });
             return;
         }
-        
+
         // Send confirmation message
-        await sock.sendMessage(remoteJid, { 
+        await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.restartResponse.confirmation)
         });
-        
+
         // Save restart confirmation status
         global.pendingRestarts = global.pendingRestarts || {};
         global.pendingRestarts[senderNumber] = {
             deviceId: device._id,
             timestamp: Date.now()
         };
-        
+
     } catch (error) {
         logger.error(`Error preparing device restart: ${error.message}`);
         await sock.sendMessage(remoteJid, {
@@ -417,52 +443,52 @@ async function handleRestartConfirmation(remoteJid, senderNumber, confirmed) {
 
     try {
         if (!global.pendingRestarts || !global.pendingRestarts[senderNumber]) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.restartResponse.noPendingRequest)
             });
             return;
         }
-        
+
         const { deviceId, timestamp } = global.pendingRestarts[senderNumber];
-        
+
         // Check if confirmation is still valid (within 5 minutes)
         if (Date.now() - timestamp > 5 * 60 * 1000) {
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.restartResponse.expired)
             });
             delete global.pendingRestarts[senderNumber];
             return;
         }
-        
+
         if (confirmed) {
             // Send processing message
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.restartResponse.processing)
             });
-            
+
             // Restart device
             await genieacsApi.reboot(deviceId);
-            
+
             // Send success message
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.restartResponse.success)
             });
         } else {
             // Send cancellation message
-            await sock.sendMessage(remoteJid, { 
+            await sock.sendMessage(remoteJid, {
                 text: formatResponse(responses.restartResponse.canceled)
             });
         }
-        
+
         // Delete restart confirmation status
         delete global.pendingRestarts[senderNumber];
-        
+
     } catch (error) {
         logger.error(`Error handling restart confirmation: ${error.message}`);
         await sock.sendMessage(remoteJid, {
             text: formatResponse(responses.restartResponse.error(error.message))
         });
-        
+
         // Delete restart confirmation status even if error
         if (global.pendingRestarts && global.pendingRestarts[senderNumber]) {
             delete global.pendingRestarts[senderNumber];
@@ -474,42 +500,42 @@ async function handleRestartConfirmation(remoteJid, senderNumber, confirmed) {
 function getSSIDValue(device, configIndex) {
     try {
         // Try method 1: Using bracket notation for WLANConfiguration
-        if (device.InternetGatewayDevice && 
-            device.InternetGatewayDevice.LANDevice && 
-            device.InternetGatewayDevice.LANDevice['1'] && 
-            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration && 
-            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex] && 
+        if (device.InternetGatewayDevice &&
+            device.InternetGatewayDevice.LANDevice &&
+            device.InternetGatewayDevice.LANDevice['1'] &&
+            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration &&
+            device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex] &&
             device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex].SSID) {
-            
+
             const ssidObj = device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration[configIndex].SSID;
             if (ssidObj._value !== undefined) {
                 return ssidObj._value;
             }
         }
-        
+
         // Try method 2: Using getParameterWithPaths
         const ssidPath = `InternetGatewayDevice.LANDevice.1.WLANConfiguration.${configIndex}.SSID`;
         const ssidValue = getParameterWithPaths(device, [ssidPath]);
         if (ssidValue && ssidValue !== 'N/A') {
             return ssidValue;
         }
-        
+
         // Try method 3: Search in entire object
         for (const key in device) {
             if (device[key]?.LANDevice?.['1']?.WLANConfiguration?.[configIndex]?.SSID?._value) {
                 return device[key].LANDevice['1'].WLANConfiguration[configIndex].SSID._value;
             }
         }
-        
+
         // Try method 4: Check in virtual parameters
         if (device.VirtualParameters?.SSID?._value) {
             return device.VirtualParameters.SSID._value;
         }
-        
+
         if (configIndex === '5' && device.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['2']?.SSID?._value) {
             return device.InternetGatewayDevice.LANDevice['1'].WLANConfiguration['2'].SSID._value;
         }
-        
+
         return 'N/A';
     } catch (error) {
         logger.error(`Error getting SSID for config ${configIndex}: ${error.message}`);

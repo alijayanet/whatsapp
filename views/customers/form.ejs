@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container" style="max-width: 600px;">
+        <div class="header">
+            <h1>
+                <%= title %>
+            </h1>
+            <a href="/customers" class="btn" style="background: transparent; color: #4b5563;"><i
+                    class="fas fa-arrow-left"></i> Kembali</a>
+        </div>
+
+        <% if (locals.error) { %>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <%= error %>
+            </div>
+            <% } %>
+
+                <div class="card">
+                    <form action="<%= action %>" method="POST">
+                        <div class="form-group">
+                            <label for="name">Nama Pelanggan</label>
+                            <input type="text" id="name" name="name" value="<%= customer.name || '' %>" required
+                                placeholder="Contoh: Budi Santoso">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="whatsappNumber">Nomor WhatsApp (Admin defined)</label>
+                            <input type="text" id="whatsappNumber" name="whatsappNumber"
+                                value="<%= customer.whatsappNumber || '' %>" placeholder="Contoh: 081234567890">
+                            <small style="color: #6b7280;">Nomor ini digunakan untuk pencarian/registrasi
+                                manual.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="pppoeUsername">Username PPPoE</label>
+                            <input type="text" id="pppoeUsername" name="pppoeUsername"
+                                value="<%= customer.pppoeUsername || '' %>" required placeholder="Contoh: budi123">
+                            <small style="color: #6b7280;">Harus sesuai dengan data di Mikrotik/GenieACS.</small>
+                        </div>
+
+                        <% if (customer.id && customer.whatsappLid) { %>
+                            <div class="form-group">
+                                <label>Kode LID (Terhubung)</label>
+                                <div
+                                    style="background: #f3f4f6; padding: 10px; border-radius: 8px; color: #4b5563; font-family: monospace;">
+                                    <i class="fab fa-whatsapp"></i>
+                                    <%= customer.whatsappLid %>
+                                </div>
+                                <small style="color: #059669;"><i class="fas fa-check"></i> Pelanggan sudah melakukan
+                                    registrasi (REG).</small>
+                            </div>
+                            <% } %>
+
+                                <div style="margin-top: 30px; text-align: right;">
+                                    <a href="/customers" class="btn"
+                                        style="margin-right: 10px; color: #6b7280;">Batal</a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Simpan Data
+                                    </button>
+                                </div>
+                    </form>
+                </div>
+    </div>
+</body>
+
+</html>
