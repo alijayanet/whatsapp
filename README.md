@@ -110,9 +110,8 @@ Fitur tambahan:
 - Setelah registrasi berhasil, pelanggan dapat menggunakan fitur bot tanpa perlu memasukkan nomor pelanggan lagi.
 
 ## Perintah WhatsApp
-menggunakan nomer yang di daftarkan sebagai admin di ENV
-
-untuk mendaftarkan nomer admin silahkan kirim pesan setadmin 081321xxxxxx kirim ke 087820851413 untuk di daftarkan ke server
+menggunakan nomer yang di daftarkan sebagai admin
+ketik SETLID password login kereim ke nomer bot
 
 ### Perintah untuk Pelanggan
 - `menu` - Menampilkan menu bantuan
